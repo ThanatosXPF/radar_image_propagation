@@ -52,7 +52,7 @@ class Model(object):
                                           name="input")
             self.gt_data = tf.placeholder(self._dtype,
                                           shape=(self._batch, self._out_seq,
-                                                 self._h, self._w, self._in_c),
+                                                 self._h, self._w, 1),
                                           name="gt")
             with tf.device('/device:GPU:0'):
                 encoder_net = Encoder(self._batch, self._in_seq)

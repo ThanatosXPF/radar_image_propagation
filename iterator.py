@@ -6,6 +6,7 @@ import bisect
 import config as cfg
 from image import quick_read_frames
 
+
 class Iterator(object):
     """The iterator for the dataset
 
@@ -148,7 +149,8 @@ class Iterator(object):
         for clip in datetime_clips:
             assert len(clip) == self._seq_len
         batch_size = len(datetime_clips)
-        frame_dat = np.zeros(( batch_size, self._seq_len, self._height, self._width, 1),
+        frame_dat = np.zeros(( batch_size, self._seq_len, self._height,
+                               self._width, cfg.IN_CHANEL),
                              dtype=np.uint8)
 
         if self.sample_mode == "random":

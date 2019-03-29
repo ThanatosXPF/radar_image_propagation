@@ -75,5 +75,6 @@ class Forecaster(object):
 
             conv_final = conv2d_act(deconv1, kernel=3, strides=1, num_filters=8, name="conv_final")
             pred = conv2d(conv_final, kshape=(1, 1, 8, 1), name="out")
-            pred = tf.reshape(pred, shape=(self._batch, self._seq, self._h, self._w, self._in_c))
+            pred = tf.reshape(pred, shape=(self._batch, self._seq, self._h,
+                                           self._w, 1))
             self.pred = pred

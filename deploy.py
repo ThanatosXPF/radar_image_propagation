@@ -9,7 +9,6 @@ class Deploy(object):
         self.model = Model(load_path, mode="online")
 
     def predict(self, in_data):
-
         gt_data = np.zeros((c.BATCH_SIZE, c.PREDICT_LENGTH, c.H, c.W, c.IN_CHANEL))
         mse, mae, gdl, pred = self.model.valid_step(in_data, gt_data)
         return pred, mse, mae, gdl

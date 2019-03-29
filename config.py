@@ -3,7 +3,7 @@ import os
 
 #iterator
 DATA_BASE_PATH = os.path.join("/extend", "sz17_data")
-REF_PATH = os.path.join(DATA_BASE_PATH, "radarPNG_expand")
+REF_PATH = os.path.join(DATA_BASE_PATH, "radarPNG_3")
 
 BASE_PATH = os.path.join("/extend", "gru_tf_data")
 SAVE_PATH = os.path.join(BASE_PATH, "0321_1417test")
@@ -43,6 +43,7 @@ OUT_SEQ = 10
 LR = 0.0001
 
 RESIDUAL = False
+SEQUENCE_MODE = False
 
 FIRST_CONV = (8, 7, 5, 1)              # pad
 LAST_DECONV = (8, 7, 5, 1)
@@ -58,7 +59,7 @@ FEATMAP_SIZE = [180, 60, 30]
 
 I2H_KERNEL = [3, 3, 3]
 H2H_KERNEL = [5, 5, 3]
-NUM_FILTER = [64, 192, 192]
+NUM_FILTER = [32, 96, 96]
 
 # EVALUATION
 
