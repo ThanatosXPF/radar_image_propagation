@@ -6,8 +6,7 @@ DATA_BASE_PATH = os.path.join("/extend", "sz17_data")
 REF_PATH = os.path.join(DATA_BASE_PATH, "radarPNG_expand")
 
 BASE_PATH = os.path.join("/extend", "gru_tf_data")
-SAVE_PATH = os.path.join(BASE_PATH, "0316_loss_mse")
-
+SAVE_PATH = os.path.join(BASE_PATH, "0321_1417test")
 SAVE_MODEL = os.path.join(SAVE_PATH, "Save")
 SAVE_VALID = os.path.join(SAVE_PATH, "Valid")
 SAVE_TEST = os.path.join(SAVE_PATH, "Test")
@@ -18,7 +17,7 @@ if not os.path.exists(SAVE_MODEL):
 if not os.path.exists(SAVE_VALID):
     os.makedirs(SAVE_VALID)
 
-RAINY_TRAIN = ['201501010000', '201901010000']
+RAINY_TRAIN = ['201501010000', '201801010000']
 RAINY_VALID = ['201801010000', '201809180000']
 RAINY_TEST = ['201805110000', '201806080000']
 

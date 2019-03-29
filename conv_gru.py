@@ -1,6 +1,5 @@
 import tensorflow as tf
 from tensorflow.contrib.layers import xavier_initializer
-import numpy as np
 
 
 class ConvGRUCell(object):

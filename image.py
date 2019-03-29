@@ -12,7 +12,10 @@ _imread_executor_pool = ThreadPoolExecutor(max_workers=16)
 
 def read_img(path, read_storage, im_h, im_w):
     # read_storage[:] = numpy.fromfile(path, dtype=numpy.uint8).reshape(im_h, im_w)
-    read_storage[:] = cv2.imread(path, 0)
+    if c.IN_CHANEL == 1:
+        read_storage[:] = cv2.imread(path, 0)
+    elif c.IN_CHANEL == 3:
+        read_storage[:] = cv2.imread(path)
 
 
 def quick_read_frames(path_list, im_h, im_w):
@@ -34,7 +37,7 @@ def quick_read_frames(path_list, im_h, im_w):
             print(path_list[i])
             raise IOError
 
-    read_storage = numpy.empty((img_num, im_h, im_w), dtype=numpy.uint8)
+    read_storage = numpy.empty((img_num, im_h, im_w, c.IN_CHANEL), dtype=numpy.uint8)
 
     if img_num == 1:
         read_img(path_list[0], read_storage[0], im_h, im_w)
@@ -46,4 +49,4 @@ def quick_read_frames(path_list, im_h, im_w):
         wait(future_objs)
 
     read_storage = read_storage.reshape((img_num, im_h, im_w, c.IN_CHANEL))
-    return read_storage[:, ...]
+    return read_storage[...]
