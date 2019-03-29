@@ -119,19 +119,24 @@ class ConvGRUCell(object):
         :return:
         outputs:
         """
-        if inputs is not None:
-            inputs = tf.unstack(inputs, length, axis=1)
-        else:
-            inputs = [None] * length
         if begin_state is None:
             states = self.zero_state()
         else:
             states = begin_state
 
         outputs = []
-        for i in range(length):
-            output, states = self(inputs[i], state=states)
-            outputs.append(output)
+
+        if inputs is not None:
+            inputs = tf.unstack(inputs, length, axis=1)
+            for i in range(length):
+                output, states = self(inputs[i], state=states)
+                outputs.append(output)
+        else:
+            inputs = None
+            for i in range(length):
+                output, states = self(inputs, state=states)
+                inputs = output
+                outputs.append(output)
 
         if merge:
             outputs = tf.stack(outputs, axis=1)
