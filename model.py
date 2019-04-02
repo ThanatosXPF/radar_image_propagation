@@ -35,6 +35,7 @@ class Model(object):
         self.sess = tf.Session(config=tf_config)
 
         self.saver = tf.train.Saver(max_to_keep=0)
+        self.summary_writer = tf.summary.FileWriter(c.SAVE_SUMMARY, graph=self.sess.graph)
 
         if restore_path is not None:
             self.saver.restore(self.sess, restore_path)
@@ -53,35 +54,33 @@ class Model(object):
                                                  self._h, self._w, 1),
                                           name="gt")
             self.global_step = tf.Variable(0, trainable=False)
-            with tf.device('/device:GPU:0'):
-                encoder_net = Encoder(self._batch,
-                                      self._in_seq,
-                                      gru_fms=c.GRU_FMS,
-                                      gru_filter=c.ENCODER_GRU_FILTER,
-                                      gru_in_chanel=c.ENCODER_GRU_INCHANEL,
-                                      conv_fms=c.CONV_FMS,
-                                      conv_stride=c.CONV_STRIDE,
-                                      h2h_kernel=c.H2H_KERNEL,
-                                      i2h_kernel=c.I2H_KERNEL)
-                for i in range(self._in_seq):
-                    encoder_net.rnn_encoder(self.in_data[:, i, ...])
-                states = encoder_net.rnn_states
-            with tf.device('/device:GPU:1'):
-                forecaster_net = Forecaster(self._batch,
-                                            self._out_seq,
-                                            gru_fms=c.GRU_FMS,
-                                            gru_filter=c.DECODER_GRU_FILTER,
-                                            gru_in_chanel=c.DECODER_GRU_INCHANEL,
-                                            conv_fms=c.DECONV_FMS,
-                                            conv_stride=c.DECONV_STRIDE,
-                                            infer_shape=c.DECODER_INFER_SHAPE,
-                                            h2h_kernel=c.H2H_KERNEL,
-                                            i2h_kernel=c.I2H_KERNEL,
-                                            rnn_states=states)
+            encoder_net = Encoder(self._batch,
+                                  self._in_seq,
+                                  gru_fms=c.GRU_FMS,
+                                  gru_filter=c.ENCODER_GRU_FILTER,
+                                  gru_in_chanel=c.ENCODER_GRU_INCHANEL,
+                                  conv_fms=c.CONV_FMS,
+                                  conv_stride=c.CONV_STRIDE,
+                                  h2h_kernel=c.H2H_KERNEL,
+                                  i2h_kernel=c.I2H_KERNEL)
+            for i in range(self._in_seq):
+                encoder_net.rnn_encoder(self.in_data[:, i, ...])
+            states = encoder_net.rnn_states
+            forecaster_net = Forecaster(self._batch,
+                                        self._out_seq,
+                                        gru_fms=c.GRU_FMS,
+                                        gru_filter=c.DECODER_GRU_FILTER,
+                                        gru_in_chanel=c.DECODER_GRU_INCHANEL,
+                                        conv_fms=c.DECONV_FMS,
+                                        conv_stride=c.DECONV_STRIDE,
+                                        infer_shape=c.DECODER_INFER_SHAPE,
+                                        h2h_kernel=c.H2H_KERNEL,
+                                        i2h_kernel=c.I2H_KERNEL,
+                                        rnn_states=states)
 
-                for i in range(self._out_seq):
-                    forecaster_net.rnn_forecaster()
-                pred = tf.concat(forecaster_net.pred, axis=1)
+            for i in range(self._out_seq):
+                forecaster_net.rnn_forecaster()
+            pred = tf.concat(forecaster_net.pred, axis=1)
 
             with tf.variable_scope("loss"):
                 gt = self.gt_data
@@ -93,18 +92,36 @@ class Model(object):
                 loss = c.L1_LAMBDA * self.mse + c.L2_LAMBDA * self.mae + c.GDL_LAMBDA * self.gdl
                 self.optimizer = tf.train.AdamOptimizer(c.LR).minimize(loss, global_step=self.global_step)
 
+                tf.summary.scalar('mse', self.mse)
+                tf.summary.scalar('mae', self.mae)
+                tf.summary.scalar('gdl', self.gdl)
+                tf.summary.scalar('combine_loss', loss)
+                self.summary = tf.summary.merge_all()
+
     def train_step(self, in_data, gt_data):
-        _, mse, mae, gdl, pred = self.sess.run([self.optimizer, self.mse, self.mae, self.gdl, self.result],
-                                               feed_dict={
-                                                   self.in_data: in_data,
-                                                   self.gt_data: gt_data
-                                               })
+        _, mse, mae, gdl, pred, summary, global_step = self.sess.run([self.optimizer,
+                                                                      self.mse,
+                                                                      self.mae,
+                                                                      self.gdl,
+                                                                      self.result,
+                                                                      self.summary,
+                                                                      self.global_step],
+                                                                     feed_dict={
+                                                                         self.in_data: in_data,
+                                                                         self.gt_data: gt_data
+                                                                     })
         print("pred: ", pred.min(), pred.max())
         print("gt: ", gt_data.min(), gt_data.max())
+        if global_step % c.SUMMARY_ITER == 0:
+            self.summary_writer.add_summary(summary, global_step)
+            print("Save summaries")
         return mse, mae, gdl
 
     def valid_step(self, in_data, gt_data):
-        mse, mae, gdl, pred = self.sess.run([self.mse, self.mae, self.gdl, self.result],
+        mse, mae, gdl, pred = self.sess.run([self.mse,
+                                             self.mae,
+                                             self.gdl,
+                                             self.result],
                                             feed_dict={
                                                 self.in_data: in_data,
                                                 self.gt_data: gt_data

@@ -13,11 +13,11 @@ def config_log():
                         filename=os.path.join(c.SAVE_PATH, "train.log"),
                         filemode='w')
 
-    # console = logging.StreamHandler()
-    # console.setLevel(logging.INFO)
-    # formatter = logging.Formatter('%(asctime)s  %(levelname)-8s %(message)s')
-    # console.setFormatter(formatter)
-    # logging.getLogger('').addHandler(console)
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s  %(levelname)-8s %(message)s')
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
 
 
 def normalize_frames(frames):

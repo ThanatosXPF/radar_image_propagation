@@ -65,7 +65,6 @@ def deconv2d_act(input, name, kernel, bias, infer_shape, strides, act_type="leak
                                              input_size[2],
                                              input_size[3],
                                              input_size[4]))
-
         out = tf.nn.conv2d_transpose(input, kernel, infer_shape, strides=(1, strides, strides, 1), name=name, padding=padding)
         out = tf.nn.bias_add(out, bias)
         if act_type == "relu":

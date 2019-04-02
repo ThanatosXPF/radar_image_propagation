@@ -52,7 +52,7 @@ class Forecaster(object):
         first rnn input (b, 180, 180 ,192) output (b, 180, 180, 64)
         :return:
         """
-        with tf.variable_scope("Forecaster"):
+        with tf.variable_scope("Forecaster") and tf.device('/device:GPU:1'):
             for i in range(len(self._gru_fms)):
                 self.rnn_blocks.append(ConvGRUCell(num_filter=self._gru_filter[i],
                                                    b_h_w=(self._batch,
@@ -64,47 +64,49 @@ class Forecaster(object):
                                                    chanel=self._gru_in_chanel[i]))
 
     def init_parameters(self):
-        with tf.variable_scope("Forecaster"):
-            for i in range(len(self._conv_fms) - 1, -1, -1):
+        with tf.variable_scope("Forecaster", auxiliary_name_scope=False) and tf.device('/device:GPU:1'):
+            for i in range(len(self._conv_fms)):
                 self.conv_kernels.append(tf.get_variable(name=f"Deconv{i}_W",
                                                          shape=self._conv_fms[i],
                                                          initializer=xavier_initializer(uniform=False),
                                                          dtype=self._dtype))
                 self.conv_bias.append(tf.get_variable(name=f"Deconv{i}_b",
-                                                      shape=self._conv_fms[i][-1]))
+                                                      shape=[self._conv_fms[i][-2]]))
                 self.infer_shape.append(
                     (self._batch, self._infer_shape[i], self._infer_shape[i], self._conv_fms[i][-2]))
             self.final_conv.append(tf.get_variable(name="Final_conv1_W",
-                                                     shape=(3, 3, 8, 8),
-                                                     initializer=xavier_initializer(uniform=False),
-                                                     dtype=self._dtype))
+                                                   shape=(3, 3, 8, 8),
+                                                   initializer=xavier_initializer(uniform=False),
+                                                   dtype=self._dtype))
             self.final_bias.append(tf.get_variable(name="Final_conv1_b",
-                                                   shape=8))
+                                                   shape=[8]))
             self.final_conv.append(tf.get_variable(name="Final_conv2",
                                                    shape=(1, 1, 8, 1),
                                                    initializer=xavier_initializer(uniform=False),
                                                    dtype=self._dtype))
             self.final_bias.append(tf.get_variable(name="Final_conv2_b",
-                                                   shape=1))
+                                                   shape=[1]))
 
     def rnn_forecaster(self):
-        with tf.variable_scope("Forecaster"):
+        with tf.variable_scope("Forecaster", auxiliary_name_scope=False, reuse=tf.AUTO_REUSE) and tf.device('/device:GPU:1'):
             in_data = None
             for i in range(self.stack_num - 1, -1, -1):
                 output, states = self.rnn_blocks[i](inputs=in_data,
-                                                    states=self.rnn_states[i])
+                                                    state=self.rnn_states[i])
                 deconv = deconv2d_act(input=output,
-                                    name=f"Deconv{i}",
-                                    kernel=self.conv_kernels[i],
-                                    bias=self.conv_bias[i],
-                                    infer_shape=self.infer_shape[i],
-                                    strides=self.conv_stride[i])
+                                      name=f"Deconv{i}",
+                                      kernel=self.conv_kernels[i],
+                                      bias=self.conv_bias[i],
+                                      infer_shape=self.infer_shape[i],
+                                      strides=self.conv_stride[i])
 
                 self.rnn_states[i] = states
                 in_data = deconv
-            conv_final = tf.nn.conv2d(in_data, self.final_conv[0], strides=(1,1,1,1),padding="Same", name="final_conv")
+            conv_final = tf.nn.conv2d(in_data, self.final_conv[0], strides=(1, 1, 1, 1), padding="SAME",
+                                      name="final_conv")
             conv_final = tf.nn.leaky_relu(tf.nn.bias_add(conv_final, self.final_bias[0]))
-            pred = tf.nn.conv2d(conv_final, filter=self.final_conv[1], strides=(1, 1, 1, 1), padding="same", name="Pred")
+            pred = tf.nn.conv2d(conv_final, filter=self.final_conv[1], strides=(1, 1, 1, 1), padding="SAME",
+                                name="Pred")
             pred = tf.nn.leaky_relu(tf.nn.bias_add(pred, self.final_bias[1]))
             pred = tf.reshape(pred, shape=(self._batch, 1, self._h, self._w, 1))
             self.pred.append(pred)

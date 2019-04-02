@@ -3,10 +3,10 @@ import os
 
 #iterator
 DATA_BASE_PATH = os.path.join("/extend", "sz17_data")
-REF_PATH = os.path.join(DATA_BASE_PATH, "radarPNG_3")
+REF_PATH = os.path.join(DATA_BASE_PATH, "radarPNG_expand")
 
 BASE_PATH = os.path.join("/extend", "gru_tf_data")
-SAVE_PATH = os.path.join(BASE_PATH, "0321_1417test")
+SAVE_PATH = os.path.join(BASE_PATH, "0402_test")
 SAVE_MODEL = os.path.join(SAVE_PATH, "Save")
 SAVE_VALID = os.path.join(SAVE_PATH, "Valid")
 SAVE_TEST = os.path.join(SAVE_PATH, "Test")
@@ -26,6 +26,8 @@ RAINY_TEST = ['201805110000', '201806080000']
 MAX_ITER = 100001
 SAVE_ITER = 5000
 VALID_ITER = 5000
+
+SUMMARY_ITER = 10
 
 # project
 DTYPE = "single"
