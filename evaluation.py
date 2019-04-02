@@ -237,13 +237,13 @@ class Evaluator(object):
             makedirs(save_path)
         for threshold in thresholds:
             metrics = self.metric[threshold]
-            pod = metrics["pod"].reshape(-1)
+            pod = metrics["pod"].reshape(-1) / self.total
             pods.append(np.average(pod))
-            far = metrics["far"].reshape(-1)
+            far = metrics["far"].reshape(-1) / self.total
             fars.append(np.average(far))
-            csi = metrics["csi"].reshape(-1)
+            csi = metrics["csi"].reshape(-1) / self.total
             csis.append(np.average(csi))
-            hss = metrics["hss"].reshape(-1)
+            hss = metrics["hss"].reshape(-1) / self.total
             hsss.append(np.average(hss))
 
             x = list(range(len(pod)))
@@ -294,5 +294,9 @@ if __name__ == '__main__':
         gt[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319222400/out/{i}.png', 0)
         pred[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319222400/pred/{i}.png', 0)
 
+    e.evaluate(gt, pred)
+    for i in range(1, 11):
+        gt[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319232400/out/{i}.png', 0)
+        pred[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319232400/pred/{i}.png', 0)
     e.evaluate(gt, pred)
     e.done()
