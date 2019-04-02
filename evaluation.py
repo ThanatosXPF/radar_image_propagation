@@ -1,5 +1,9 @@
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
+from os.path import join, exists
+from os import makedirs
+plt.switch_backend('agg')
 
 import config as c
 from utils import denormalize_frames, normalize_frames
@@ -172,12 +176,123 @@ def gdl_loss(pred, gt):
     return gdl
 
 
+class Evaluator(object):
+    def __init__(self, step):
+        self.metric = {}
+        for threshold in c.EVALUATION_THRESHOLDS:
+            self.metric[threshold] = {
+                "pod": np.zeros((c.OUT_SEQ, 1), np.float32),
+                "far": np.zeros((c.OUT_SEQ, 1), np.float32),
+                "csi": np.zeros((c.OUT_SEQ, 1), np.float32),
+                "hss": np.zeros((c.OUT_SEQ, 1), np.float32)
+            }
+        self.step = step
+        self.total = 0
+        print(self.metric.keys())
+
+    def get_metrics(self, gt, pred, threshold):
+        b_gt = gt > threshold
+        b_pred = pred > threshold
+        b_gt_n = np.logical_not(b_gt)
+        b_pred_n = np.logical_not(b_pred)
+
+        summation_axis = (0, 2, 3)
+
+        hits = np.logical_and(b_pred, b_gt).sum(axis=summation_axis)
+        misses = np.logical_and(b_pred_n, b_gt).sum(axis=summation_axis)
+        false_alarms = np.logical_and(b_pred, b_gt_n).sum(axis=summation_axis)
+        correct_negatives = np.logical_and(b_pred_n, b_gt_n).sum(axis=summation_axis)
+
+        a = hits
+        b = false_alarms
+        c = misses
+        d = correct_negatives
+
+        pod = a / (a + c)
+        far = b / (a + b)
+        csi = a / (a + b + c)
+        n = a + b + c + d
+        aref = (a + b) / n * (a + c)
+        gss = (a - aref) / (a + b + c - aref)
+        hss = 2 * gss / (gss + 1)
+        return pod, far, csi, hss
+
+    def evaluate(self, gt, pred):
+        self.total += 1
+        for threshold in c.EVALUATION_THRESHOLDS:
+            pod, far, csi, hss = self.get_metrics(gt, pred, threshold)
+            self.metric[threshold]["pod"] += pod
+            self.metric[threshold]["far"] += far
+            self.metric[threshold]["csi"] += csi
+            self.metric[threshold]["hss"] += hss
+
+    def done(self):
+        thresholds = c.EVALUATION_THRESHOLDS
+        pods = []
+        fars = []
+        csis = []
+        hsss = []
+        save_path = join(c.SAVE_METRIC, f"{self.step}")
+        if not exists(save_path):
+            makedirs(save_path)
+        for threshold in thresholds:
+            metrics = self.metric[threshold]
+            pod = metrics["pod"].reshape(-1)
+            pods.append(np.average(pod))
+            far = metrics["far"].reshape(-1)
+            fars.append(np.average(far))
+            csi = metrics["csi"].reshape(-1)
+            csis.append(np.average(csi))
+            hss = metrics["hss"].reshape(-1)
+            hsss.append(np.average(hss))
+
+            x = list(range(len(pod)))
+            plt.plot(x, pod, "r--", label='pod')
+            plt.plot(x, far, "g--", label="far")
+            plt.plot(x, csi, "b--", label="csi")
+            plt.plot(x, hss, "k--", label="hss")
+            for a, p, f, cs, h in zip(x, pod, far, csi, hss):
+                plt.text(a, p+0.005, "%.2f"%p, ha='center', va='bottom', fontsize=7)
+                plt.text(a, f+0.005, "%.2f"%f, ha='center', va='bottom', fontsize=7)
+                plt.text(a, cs+0.005, "%.2f"%cs, ha='center', va='bottom', fontsize=7)
+                plt.text(a, h+0.005, "%.2f"%h, ha='center', va='bottom', fontsize=7)
+
+            plt.title(f"Threshold {threshold}")
+            plt.xlabel("Time step")
+            plt.ylabel("Rate")
+            plt.legend()
+            plt.gcf().set_size_inches(9.6, 4.8)
+            plt.savefig(join(save_path, f"{threshold}.jpg"))
+            plt.clf()
+        x = np.array(range(len(thresholds)))
+        total_width, n = 0.8, 4
+        width = total_width / n
+        plt.bar(x, pods, width=width, label='pod', fc='r')
+        plt.bar(x+0.2, fars, width=width, label='far', fc='g', tick_label=thresholds)
+        plt.bar(x+0.4, csis, width=width, label='csi', fc='b')
+        plt.bar(x+0.6, hsss, width=width, label='hss', fc='k')
+        for a, p, f, cs, h in zip(x, pods, fars, csis, hsss):
+            plt.text(a, p + 0.005, "%.2f" % p, ha='center', va='bottom', fontsize=7)
+            plt.text(a+0.2, f + 0.005, "%.2f" % f, ha='center', va='bottom', fontsize=7)
+            plt.text(a+0.4, cs + 0.005, "%.2f" % cs, ha='center', va='bottom', fontsize=7)
+            plt.text(a+0.6, h + 0.005, "%.2f" % h, ha='center', va='bottom', fontsize=7)
+        plt.xlabel("Thresholds")
+        plt.ylabel("Rate")
+        plt.title(f"Average metrics in {self.step}")
+        plt.legend()
+        plt.gcf().set_size_inches(9.6, 4.8)
+        plt.savefig(join(save_path, f"average_{self.step}.jpg"))
+        plt.clf()
+
+
 if __name__ == '__main__':
-    a= [[1,2,3,5,15],
-        [25,30,40,45,50],
-        [60, 70, 79, 1, 17],
-        [60, 70, 79, 1, 17],
-        [60, 70, 79, 1, 17]]
-    a = normalize_frames(np.asarray(a))
-    print(a)
-    print(get_loss_weight_symbol(a))
+    from cv2 import imread
+    e = Evaluator(100)
+    gt = np.zeros((1, 10, 900, 900, 1))
+    pred = np.zeros((1, 10, 900, 900, 1))
+    for i in range(1, 11):
+        gt[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319222400/out/{i}.png', 0)
+        pred[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319222400/pred/{i}.png', 0)
+
+    e.evaluate(gt, pred)
+    e.done()

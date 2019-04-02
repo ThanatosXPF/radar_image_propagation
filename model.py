@@ -1,6 +1,4 @@
-import os
 import tensorflow as tf
-import logging
 
 from encoder import Encoder
 from forecaster import Forecaster
@@ -22,7 +20,7 @@ class Model(object):
             self._batch = c.BATCH_SIZE
 
         self._in_seq = c.IN_SEQ
-        if mode=="train":
+        if mode == "train":
             self._out_seq = c.OUT_SEQ
         else:
             self._out_seq = c.PREDICT_LENGTH
@@ -54,15 +52,38 @@ class Model(object):
                                           shape=(self._batch, self._out_seq,
                                                  self._h, self._w, 1),
                                           name="gt")
+            self.global_step = tf.Variable(0, trainable=False)
             with tf.device('/device:GPU:0'):
-                encoder_net = Encoder(self._batch, self._in_seq)
-                encoder_net.stack_rnn_encoder(self.in_data)
+                encoder_net = Encoder(self._batch,
+                                      self._in_seq,
+                                      gru_fms=c.GRU_FMS,
+                                      gru_filter=c.ENCODER_GRU_FILTER,
+                                      gru_in_chanel=c.ENCODER_GRU_INCHANEL,
+                                      conv_fms=c.CONV_FMS,
+                                      conv_stride=c.CONV_STRIDE,
+                                      h2h_kernel=c.H2H_KERNEL,
+                                      i2h_kernel=c.I2H_KERNEL)
+                for i in range(self._in_seq):
+                    encoder_net.rnn_encoder(self.in_data[:, i, ...])
+                states = encoder_net.rnn_states
             with tf.device('/device:GPU:1'):
-                forecaster_net = Forecaster(self._batch, self._out_seq)
-                forecaster_net.stack_rnn_forecaster(encoder_net.rnn_states)
+                forecaster_net = Forecaster(self._batch,
+                                            self._out_seq,
+                                            gru_fms=c.GRU_FMS,
+                                            gru_filter=c.DECODER_GRU_FILTER,
+                                            gru_in_chanel=c.DECODER_GRU_INCHANEL,
+                                            conv_fms=c.DECONV_FMS,
+                                            conv_stride=c.DECONV_STRIDE,
+                                            infer_shape=c.DECODER_INFER_SHAPE,
+                                            h2h_kernel=c.H2H_KERNEL,
+                                            i2h_kernel=c.I2H_KERNEL,
+                                            rnn_states=states)
+
+                for i in range(self._out_seq):
+                    forecaster_net.rnn_forecaster()
+                pred = tf.concat(forecaster_net.pred, axis=1)
 
             with tf.variable_scope("loss"):
-                pred = forecaster_net.pred
                 gt = self.gt_data
                 weights = get_loss_weight_symbol(pred)
                 self.result = pred
@@ -70,29 +91,31 @@ class Model(object):
                 self.mae = weighted_mae(pred, gt, weights)
                 self.gdl = gdl_loss(pred, gt)
                 loss = c.L1_LAMBDA * self.mse + c.L2_LAMBDA * self.mae + c.GDL_LAMBDA * self.gdl
-                self.optimizer = tf.train.AdamOptimizer(c.LR).minimize(loss)
+                self.optimizer = tf.train.AdamOptimizer(c.LR).minimize(loss, global_step=self.global_step)
 
     def train_step(self, in_data, gt_data):
         _, mse, mae, gdl, pred = self.sess.run([self.optimizer, self.mse, self.mae, self.gdl, self.result],
-                                         feed_dict={
-                                             self.in_data: in_data,
-                                             self.gt_data:gt_data
-                                         })
+                                               feed_dict={
+                                                   self.in_data: in_data,
+                                                   self.gt_data: gt_data
+                                               })
         print("pred: ", pred.min(), pred.max())
         print("gt: ", gt_data.min(), gt_data.max())
         return mse, mae, gdl
 
     def valid_step(self, in_data, gt_data):
         mse, mae, gdl, pred = self.sess.run([self.mse, self.mae, self.gdl, self.result],
-                                     feed_dict={
-                                         self.in_data: in_data,
-                                         self.gt_data:gt_data
-                                     })
+                                            feed_dict={
+                                                self.in_data: in_data,
+                                                self.gt_data: gt_data
+                                            })
         print("pred: ", pred.min(), pred.max())
         print("gt: ", gt_data.min(), gt_data.max())
         return mse, mae, gdl, pred
 
-    def save_model(self, iter):
+    def save_model(self):
         from os.path import join
-        save_path = self.saver.save(self.sess, join(c.SAVE_MODEL, "model.ckpt", str(iter)))
+        save_path = self.saver.save(self.sess,
+                                    join(c.SAVE_MODEL, "model.ckpt"),
+                                    global_step=self.global_step)
         print("Model saved in path: %s" % save_path)
