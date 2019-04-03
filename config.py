@@ -27,14 +27,14 @@ MAX_ITER = 100001
 SAVE_ITER = 5000
 VALID_ITER = 5000
 
-SUMMARY_ITER = 10
+SUMMARY_ITER = 50
 
 # project
 DTYPE = "single"
 NORMALIZE = False
 
-H = 900
-W = 900
+H = 480
+W = 480
 
 BATCH_SIZE = 2
 IN_CHANEL = 1
@@ -51,7 +51,7 @@ SEQUENCE_MODE = False
 GRU_FMS = (180, 60, 30)
 
 # encoder
-# (kernel, stride, in chanel, out chanel)
+# (kernel, kernel, in chanel, out chanel)
 
 CONV_KERNEL = ((7, 7, IN_CHANEL, 8),
                (5, 5, 64, 192),
@@ -95,3 +95,11 @@ GDL_LAMBDA = 0
 PREDICT_LENGTH = 20
 PREDICTION_H = 900
 PREDICTION_W = 900
+
+
+def config_gru_fms():
+    pass
+
+
+def config_deconv_infer():
+    pass
