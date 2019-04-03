@@ -99,8 +99,6 @@ class Runner(object):
                     else:
                         save_path = os.path.join(c.SAVE_TEST, str(iter), predict_date.strftime("%Y%m%d%H%M"))
 
-
-
                     path = os.path.join(save_path, "in")
                     save_png(in_data[b], path)
 

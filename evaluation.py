@@ -235,6 +235,7 @@ class Evaluator(object):
         save_path = join(c.SAVE_METRIC, f"{self.step}")
         if not exists(save_path):
             makedirs(save_path)
+        # draw line chart
         for threshold in thresholds:
             metrics = self.metric[threshold]
             pod = metrics["pod"].reshape(-1) / self.total
@@ -264,6 +265,7 @@ class Evaluator(object):
             plt.gcf().set_size_inches(9.6, 4.8)
             plt.savefig(join(save_path, f"{threshold}.jpg"))
             plt.clf()
+        # draw bar chart
         x = np.array(range(len(thresholds)))
         total_width, n = 0.8, 4
         width = total_width / n

@@ -53,17 +53,17 @@ GRU_FMS = (180, 60, 30)
 # encoder
 # (kernel, stride, in chanel, out chanel)
 
-CONV_FMS = ((7, 7, IN_CHANEL, 8),
-            (5, 5, 64, 192),
-            (3, 3, 192, 192))
+CONV_KERNEL = ((7, 7, IN_CHANEL, 8),
+               (5, 5, 64, 192),
+               (3, 3, 192, 192))
 CONV_STRIDE = (5, 3, 2)
 ENCODER_GRU_FILTER = (64, 192, 192)
 ENCODER_GRU_INCHANEL = (8, 192, 192)
 # decoder
 # (kernel, kernel, out chanel, in chanel)
-DECONV_FMS = ((7, 7, 8, 64),
-              (5, 5, 64, 192),
-              (4, 4, 192, 192))
+DECONV_KERNEL = ((7, 7, 8, 64),
+                 (5, 5, 64, 192),
+                 (4, 4, 192, 192))
 DECONV_STRIDE = (5, 3, 2)
 DECODER_GRU_FILTER = (64, 192, 192)
 DECODER_GRU_INCHANEL = (64, 192, 192)
@@ -93,3 +93,5 @@ GDL_LAMBDA = 0
 
 # PREDICTION
 PREDICT_LENGTH = 20
+PREDICTION_H = 900
+PREDICTION_W = 900

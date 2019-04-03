@@ -59,10 +59,12 @@ class Model(object):
                                   gru_fms=c.GRU_FMS,
                                   gru_filter=c.ENCODER_GRU_FILTER,
                                   gru_in_chanel=c.ENCODER_GRU_INCHANEL,
-                                  conv_fms=c.CONV_FMS,
+                                  conv_kernel=c.CONV_KERNEL,
                                   conv_stride=c.CONV_STRIDE,
                                   h2h_kernel=c.H2H_KERNEL,
-                                  i2h_kernel=c.I2H_KERNEL)
+                                  i2h_kernel=c.I2H_KERNEL,
+                                  height=self._h,
+                                  width=self._w)
             for i in range(self._in_seq):
                 encoder_net.rnn_encoder(self.in_data[:, i, ...])
             states = encoder_net.rnn_states
@@ -71,12 +73,14 @@ class Model(object):
                                         gru_fms=c.GRU_FMS,
                                         gru_filter=c.DECODER_GRU_FILTER,
                                         gru_in_chanel=c.DECODER_GRU_INCHANEL,
-                                        conv_fms=c.DECONV_FMS,
-                                        conv_stride=c.DECONV_STRIDE,
+                                        deconv_kernel=c.DECONV_KERNEL,
+                                        deconv_stride=c.DECONV_STRIDE,
                                         infer_shape=c.DECODER_INFER_SHAPE,
                                         h2h_kernel=c.H2H_KERNEL,
                                         i2h_kernel=c.I2H_KERNEL,
-                                        rnn_states=states)
+                                        rnn_states=states,
+                                        height=self._h,
+                                        width=self._w)
 
             for i in range(self._out_seq):
                 forecaster_net.rnn_forecaster()

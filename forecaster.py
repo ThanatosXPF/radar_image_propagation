@@ -9,8 +9,8 @@ from tf_utils import deconv2d_act
 
 class Forecaster(object):
     def __init__(self, batch, seq, gru_fms, gru_filter, gru_in_chanel,
-                 conv_fms, conv_stride, infer_shape, h2h_kernel,
-                 i2h_kernel, rnn_states):
+                 deconv_kernel, deconv_stride, infer_shape, h2h_kernel,
+                 i2h_kernel, rnn_states, height, width):
         if c.DTYPE == "single":
             self._dtype = tf.float32
         elif c.DTYPE == "HALF":
@@ -18,16 +18,15 @@ class Forecaster(object):
 
         self._batch = batch
         self._seq = seq
-        self._h = c.H
-        self._w = c.W
-        self._in_c = c.IN_CHANEL
+        self._h = height
+        self._w = width
 
         self.stack_num = len(gru_filter)
         self.rnn_blocks = []
         self.rnn_states = rnn_states
         self.conv_kernels = []
         self.conv_bias = []
-        self.conv_stride = conv_stride
+        self.conv_stride = deconv_stride
         self.infer_shape = []
         self._infer_shape = infer_shape
 
@@ -36,7 +35,7 @@ class Forecaster(object):
 
         self._gru_fms = gru_fms
         self._gru_filter = gru_filter
-        self._conv_fms = conv_fms
+        self._conv_fms = deconv_kernel
         self._gru_in_chanel = gru_in_chanel
         self._h2h_kernel = h2h_kernel
         self._i2h_kernel = i2h_kernel

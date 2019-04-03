@@ -7,7 +7,9 @@ import config as c
 
 
 class Encoder(object):
-    def __init__(self, batch, seq, gru_fms, gru_filter, gru_in_chanel, conv_fms, conv_stride, h2h_kernel, i2h_kernel):
+    def __init__(self, batch, seq, gru_fms, gru_filter,
+                 gru_in_chanel, conv_kernel, conv_stride,
+                 h2h_kernel, i2h_kernel, height, width):
         if c.DTYPE == "single":
             self._dtype = tf.float32
         elif c.DTYPE == "HALF":
@@ -15,9 +17,8 @@ class Encoder(object):
 
         self._batch = batch
         self._seq = seq
-        self._h = c.H
-        self._w = c.W
-        self._in_c = c.IN_CHANEL
+        self._h = height
+        self._w = width
 
         self.stack_num = len(gru_filter)
         self.rnn_blocks = []
@@ -28,7 +29,7 @@ class Encoder(object):
 
         self._gru_fms = gru_fms
         self._gru_filter = gru_filter
-        self._conv_fms = conv_fms
+        self._conv_fms = conv_kernel
         self._gru_in_chanel = gru_in_chanel
         self._h2h_kernel = h2h_kernel
         self._i2h_kernel = i2h_kernel
