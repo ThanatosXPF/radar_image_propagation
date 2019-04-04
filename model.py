@@ -16,14 +16,16 @@ class Model(object):
 
         if mode == "train":
             self._batch = c.BATCH_SIZE
+            self._out_seq = c.OUT_SEQ
+            self._h = c.H
+            self._w = c.W
         else:
-            self._batch = c.BATCH_SIZE
+            self._batch = 1
+            self._out_seq = c.PREDICT_LENGTH
+            self._h = c.PREDICTION_H
+            self._w = c.PREDICTION_W
 
         self._in_seq = c.IN_SEQ
-        if mode == "train":
-            self._out_seq = c.OUT_SEQ
-        else:
-            self._out_seq = c.PREDICT_LENGTH
         self._h = c.H
         self._w = c.W
         self._in_c = c.IN_CHANEL
@@ -56,7 +58,6 @@ class Model(object):
             self.global_step = tf.Variable(0, trainable=False)
             encoder_net = Encoder(self._batch,
                                   self._in_seq,
-                                  gru_fms=c.GRU_FMS,
                                   gru_filter=c.ENCODER_GRU_FILTER,
                                   gru_in_chanel=c.ENCODER_GRU_INCHANEL,
                                   conv_kernel=c.CONV_KERNEL,
@@ -70,12 +71,10 @@ class Model(object):
             states = encoder_net.rnn_states
             forecaster_net = Forecaster(self._batch,
                                         self._out_seq,
-                                        gru_fms=c.GRU_FMS,
                                         gru_filter=c.DECODER_GRU_FILTER,
                                         gru_in_chanel=c.DECODER_GRU_INCHANEL,
                                         deconv_kernel=c.DECONV_KERNEL,
                                         deconv_stride=c.DECONV_STRIDE,
-                                        infer_shape=c.DECODER_INFER_SHAPE,
                                         h2h_kernel=c.H2H_KERNEL,
                                         i2h_kernel=c.I2H_KERNEL,
                                         rnn_states=states,

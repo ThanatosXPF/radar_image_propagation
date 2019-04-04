@@ -3,11 +3,12 @@ from tensorflow.contrib.layers import xavier_initializer
 
 from conv_gru import ConvGRUCell
 from tf_utils import conv2d_act
+from config import config_gru_fms
 import config as c
 
 
 class Encoder(object):
-    def __init__(self, batch, seq, gru_fms, gru_filter,
+    def __init__(self, batch, seq, gru_filter,
                  gru_in_chanel, conv_kernel, conv_stride,
                  h2h_kernel, i2h_kernel, height, width):
         if c.DTYPE == "single":
@@ -27,7 +28,7 @@ class Encoder(object):
         self.conv_bias = []
         self.conv_stride = conv_stride
 
-        self._gru_fms = gru_fms
+        self._gru_fms = config_gru_fms(height, conv_stride)
         self._gru_filter = gru_filter
         self._conv_fms = conv_kernel
         self._gru_in_chanel = gru_in_chanel

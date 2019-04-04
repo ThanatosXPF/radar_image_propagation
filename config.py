@@ -1,7 +1,21 @@
 import os
 
 
-#iterator
+def config_gru_fms(height, strides):
+    gru_fms = [height]
+    for i, s in enumerate(strides):
+        gru_fms.append(gru_fms[i] // s)
+    return gru_fms[1:]
+
+
+def config_deconv_infer(height, strides):
+    infer_shape = [height]
+    for i, s in enumerate(strides[:-1]):
+        infer_shape.append(infer_shape[i] // s)
+    return infer_shape
+
+
+# iterator
 DATA_BASE_PATH = os.path.join("/extend", "sz17_data")
 REF_PATH = os.path.join(DATA_BASE_PATH, "radarPNG_expand")
 
@@ -22,7 +36,7 @@ RAINY_TRAIN = ['201501010000', '201801010000']
 RAINY_VALID = ['201801010000', '201809180000']
 RAINY_TEST = ['201805110000', '201806080000']
 
-#train
+# train
 MAX_ITER = 100001
 SAVE_ITER = 5000
 VALID_ITER = 5000
@@ -38,17 +52,6 @@ W = 480
 
 BATCH_SIZE = 2
 IN_CHANEL = 1
-
-# Encoder Forecaster
-IN_SEQ = 5
-OUT_SEQ = 10
-
-LR = 0.0001
-
-RESIDUAL = False
-SEQUENCE_MODE = False
-
-GRU_FMS = (180, 60, 30)
 
 # encoder
 # (kernel, kernel, in chanel, out chanel)
@@ -67,7 +70,15 @@ DECONV_KERNEL = ((7, 7, 8, 64),
 DECONV_STRIDE = (5, 3, 2)
 DECODER_GRU_FILTER = (64, 192, 192)
 DECODER_GRU_INCHANEL = (64, 192, 192)
-DECODER_INFER_SHAPE = (900, 180, 60)
+
+# Encoder Forecaster
+IN_SEQ = 5
+OUT_SEQ = 10
+
+LR = 0.0001
+
+RESIDUAL = False
+SEQUENCE_MODE = False
 
 # RNN
 I2H_KERNEL = [3, 3, 3]
@@ -97,9 +108,6 @@ PREDICTION_H = 900
 PREDICTION_W = 900
 
 
-def config_gru_fms():
-    pass
-
-
-def config_deconv_infer():
-    pass
+if __name__ == '__main__':
+    print(config_gru_fms(PREDICTION_H, CONV_STRIDE))
+    print(config_deconv_infer(PREDICTION_H, DECONV_STRIDE))

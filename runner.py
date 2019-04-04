@@ -11,11 +11,11 @@ from evaluation import Evaluator
 
 
 class Runner(object):
-    def __init__(self, para_tuple=None):
+    def __init__(self, para_tuple=None, mode="train"):
 
         self.para_tuple = para_tuple
 
-        self.model = Model(para_tuple)
+        self.model = Model(para_tuple, mode=mode)
         if not para_tuple:
             self.model.init_params()
 
@@ -109,9 +109,10 @@ class Runner(object):
                     save_png(gt_data[b], path)
         evaluator.done()
 
-    def test(self):
-        iter = self.para_tuple[-1] + "_test"
-        self.run_benchmark(iter, mode="Test")
+
+def test(para, iter):
+    model = Runner(para, mode="Test")
+    model.run_benchmark(iter, mode="Test")
 
 
 if __name__ == '__main__':
