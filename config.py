@@ -18,6 +18,7 @@ def config_deconv_infer(height, strides):
 # iterator
 DATA_BASE_PATH = os.path.join("/extend", "sz17_data")
 REF_PATH = os.path.join(DATA_BASE_PATH, "radarPNG_expand")
+TRAIN_DIR_CLIPS = os.path.join(DATA_BASE_PATH, "15-17_clips")
 
 BASE_PATH = os.path.join("/extend", "gru_tf_data")
 SAVE_PATH = os.path.join(BASE_PATH, "0402_test")
@@ -46,7 +47,9 @@ SUMMARY_ITER = 50
 # project
 DTYPE = "single"
 NORMALIZE = False
-
+FULL_H = 700
+FULL_W = 900
+MOVEMENT_THRESHOLD = 3500
 H = 480
 W = 480
 
