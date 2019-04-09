@@ -17,10 +17,11 @@ def get_a_process(data_dir,  seq_len, height, width, chanel=1):
             frame = np.fromfile(frame_path, dtype=np.uint8).reshape(height, width, chanel)
         except ValueError:
             print(frame_path)
-        frame[frame > 80] = 0
-        frame[frame < 15] = 0
-        clips[1, frame_num, ...] = frame[:,:,:]
-        yield clips
+        else:
+            frame[frame > 80] = 0
+            frame[frame < 15] = 0
+            clips[0, frame_num, ...] = frame[:,:,:]
+    return clips
 
 
 def process_clip():
@@ -31,7 +32,7 @@ def process_clip():
         crop_x = np.random.choice(c.FULL_W - c.W + 1)
         crop_y = np.random.choice(c.FULL_H - c.H + 1)
         cropped_clip[...] = clip[:, :, crop_y:crop_y+c.H, crop_x:crop_x+c.W, :]
-        if take_first or np.sum(cropped_clip > 0) > c.MOVEMENT_THRESHOLD:
+        if take_first or np.sum(cropped_clip > 0) > c.MOVEMENT_THRESHOLD * c.IN_SEQ+c.OUT_SEQ:
             return cropped_clip
 
 
@@ -40,7 +41,8 @@ def process_training_data(num_clips):
 
     for clip_num in range(num_prev_clips, num_clips + num_prev_clips):
         clip = process_clip()
-
+        if np.max(clip) == np.min(clip) == 0:
+            print("All 0 warning!!!")
         np.savez_compressed(os.path.join(c.TRAIN_DIR_CLIPS, str(clip_num)), clip)
 
         if (clip_num + 1) % 100 == 0: print('Processed %d clips' % (clip_num + 1))
