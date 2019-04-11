@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from evaluation import get_loss_weight_symbol, \
     weighted_mse, weighted_mae, gdl_loss
-import config as c
+from config import c
 
 
 class Loss(object):

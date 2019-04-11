@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-import config as c
+from config import c
 
 
 def conv2d(input, name, kshape, strides=(1, 1, 1, 1), dtype=np.float32, padding="SAME"):

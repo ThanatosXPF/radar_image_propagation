@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow.contrib.layers import xavier_initializer
 
 from conv_gru import ConvGRUCell
-import config as c
+from config import c
 from config import config_gru_fms, config_deconv_infer
 from tf_utils import deconv2d_act
 

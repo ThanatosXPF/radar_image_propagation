@@ -5,7 +5,7 @@ from os.path import join, exists
 from os import makedirs
 plt.switch_backend('agg')
 
-import config as c
+from config import c
 from utils import denormalize_frames, normalize_frames
 
 

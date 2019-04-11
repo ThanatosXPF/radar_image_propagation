@@ -4,7 +4,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, wait
 from imageio import imread
 
-import config as c
+from config import c
 
 
 _imread_executor_pool = ThreadPoolExecutor(max_workers=16)

@@ -1,6 +1,6 @@
 import numpy as np
 from model import Model
-import config as c
+from config import c
 
 
 class Deploy(object):

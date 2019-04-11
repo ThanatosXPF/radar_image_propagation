@@ -5,7 +5,7 @@ import numpy as np
 from model import Model
 from iterator import Iterator
 from clip_iterator import Clip_Iterator
-import config as c
+from config import c, cfg_from_file
 from utils import config_log, save_png
 from utils import normalize_frames
 from evaluation import Evaluator
@@ -138,6 +138,7 @@ def test(para, iter, mode="Test"):
 
 if __name__ == '__main__':
     config_log()
+    # cfg_from_file("")
     # paras = ("first_try", "94999")
     paras = None
     runner = Runner(paras)

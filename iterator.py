@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import bisect
 
-import config as cfg
+from config import c as cfg
 from image import quick_read_frames
 
 

@@ -4,7 +4,7 @@ from encoder import Encoder
 from forecaster import Forecaster
 from evaluation import get_loss_weight_symbol, \
     weighted_mse, weighted_mae, gdl_loss
-import config as c
+from config import c
 
 
 class Model(object):

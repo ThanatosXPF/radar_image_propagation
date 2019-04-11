@@ -2,7 +2,7 @@ import os
 import numpy as np
 from glob import glob
 
-import config as c
+from config import c
 
 
 def get_a_process(data_dir,  seq_len, height, width, chanel=1):

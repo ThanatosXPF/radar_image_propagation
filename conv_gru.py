@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib.layers import xavier_initializer
 
-import config as c
+from config import c
 
 
 class ConvGRUCell(object):

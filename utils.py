@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from PIL import Image
 
-import config as c
+from config import c
 
 
 def config_log():

@@ -4,7 +4,7 @@ from tensorflow.contrib.layers import xavier_initializer
 from conv_gru import ConvGRUCell
 from tf_utils import conv2d_act
 from config import config_gru_fms
-import config as c
+from config import c
 
 
 class Encoder(object):
