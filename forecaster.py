@@ -51,7 +51,7 @@ class Forecaster(object):
         first rnn input (b, 180, 180 ,192) output (b, 180, 180, 64)
         :return:
         """
-        with tf.variable_scope("Forecaster") and tf.device('/device:GPU:1'):
+        with tf.variable_scope("Forecaster"):
             for i in range(len(self._gru_fms)):
                 self.rnn_blocks.append(ConvGRUCell(num_filter=self._gru_filter[i],
                                                    b_h_w=(self._batch,
@@ -63,7 +63,7 @@ class Forecaster(object):
                                                    chanel=self._gru_in_chanel[i]))
 
     def init_parameters(self):
-        with tf.variable_scope("Forecaster", auxiliary_name_scope=False) and tf.device('/device:GPU:1'):
+        with tf.variable_scope("Forecaster", auxiliary_name_scope=False):
             for i in range(len(self._conv_fms)):
                 self.conv_kernels.append(tf.get_variable(name=f"Deconv{i}_W",
                                                          shape=self._conv_fms[i],
@@ -87,7 +87,7 @@ class Forecaster(object):
                                                    shape=[1]))
 
     def rnn_forecaster(self):
-        with tf.variable_scope("Forecaster", auxiliary_name_scope=False, reuse=tf.AUTO_REUSE) and tf.device('/device:GPU:1'):
+        with tf.variable_scope("Forecaster", auxiliary_name_scope=False, reuse=tf.AUTO_REUSE):
             in_data = None
             for i in range(self.stack_num - 1, -1, -1):
                 output, states = self.rnn_blocks[i](inputs=in_data,

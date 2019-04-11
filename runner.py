@@ -4,6 +4,7 @@ import numpy as np
 
 from model import Model
 from iterator import Iterator
+from clip_iterator import Clip_Iterator
 import config as c
 from utils import config_log, save_png
 from utils import normalize_frames
@@ -20,12 +21,10 @@ class Runner(object):
             self.model.init_params()
 
     def train(self):
-        iter = 0
-        train_iter = Iterator(time_interval=c.RAINY_TRAIN,
-                              sample_mode="random",
-                              seq_len=c.IN_SEQ + c.OUT_SEQ)
-        while iter < c.MAX_ITER:
-            data, *_ = train_iter.sample(batch_size=c.BATCH_SIZE)
+        step = 0
+        train_iter = Clip_Iterator(c.TRAIN_DIR_CLIPS)
+        while step < c.MAX_ITER:
+            data = train_iter.sample_clips(batch_size=c.BATCH_SIZE)
             in_data = data[:, :c.IN_SEQ, ...]
 
             if c.IN_CHANEL == 3:
@@ -40,14 +39,36 @@ class Runner(object):
                 gt_data = normalize_frames(gt_data)
 
             mse, mae, gdl = self.model.train_step(in_data, gt_data)
-            logging.info(f"Iter {iter}: \n\t mse:{mse} \n\t mae:{mae} \n\t gdl:{gdl}")
+            logging.info(f"Iter {step}: \n\t mse:{mse} \n\t mae:{mae} \n\t gdl:{gdl}")
 
-            if (iter + 1) % c.SAVE_ITER == 0:
+            if (step + 1) % c.SAVE_ITER == 0:
                 self.model.save_model()
 
-            if (iter + 1) % c.VALID_ITER == 0:
-                self.run_benchmark(iter)
-            iter += 1
+            if (step + 1) % c.VALID_ITER == 0:
+                self.valid_clips(step)
+            step += 1
+
+    def valid_clips(self, step):
+        test_iter = Clip_Iterator(c.VALID_DIR_CLIPS)
+        evaluator = Evaluator(step)
+        i = 0
+        for data in test_iter.sample_valid(c.BATCH_SIZE):
+            in_data = data[:, :c.IN_SEQ, ...]
+            if c.IN_CHANEL == 3:
+                gt_data = data[:, c.IN_SEQ:c.IN_SEQ + c.OUT_SEQ, :, :, 1:-1]
+            elif c.IN_CHANEL == 1:
+                gt_data = data[:, c.IN_SEQ:c.IN_SEQ + c.OUT_SEQ, ...]
+            else:
+                raise NotImplementedError
+            if c.NORMALIZE:
+                in_data = normalize_frames(in_data)
+                gt_data = normalize_frames(gt_data)
+
+            mse, mae, gdl, pred = self.model.valid_step(in_data, gt_data)
+            evaluator.evaluate(gt_data, pred)
+            logging.info(f"Iter {step} {i}: \n\t mse:{mse} \n\t mae:{mae} \n\t gdl:{gdl}")
+            i += 1
+        evaluator.done()
 
     def run_benchmark(self, iter, mode="Valid"):
         if mode == "Valid":
@@ -110,9 +131,9 @@ class Runner(object):
         evaluator.done()
 
 
-def test(para, iter):
-    model = Runner(para, mode="Test")
-    model.run_benchmark(iter, mode="Test")
+def test(para, iter, mode="Test"):
+    model = Runner(para, mode=mode)
+    model.run_benchmark(iter, mode=mode)
 
 
 if __name__ == '__main__':

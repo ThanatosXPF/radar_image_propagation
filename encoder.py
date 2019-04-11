@@ -47,7 +47,7 @@ class Encoder(object):
         other rnn cells keep the input chanel.
         :return:
         """
-        with tf.variable_scope("Encoder") and tf.device('/device:GPU:0'):
+        with tf.variable_scope("Encoder"):
             for i in range(len(self._gru_fms)):
                 self.rnn_blocks.append(ConvGRUCell(num_filter=self._gru_filter[i],
                                                    b_h_w=(self._batch,
@@ -59,7 +59,7 @@ class Encoder(object):
                                                    chanel=self._gru_in_chanel[i]))
 
     def init_parameters(self):
-        with tf.variable_scope("Encoder", auxiliary_name_scope=False) and tf.device('/device:GPU:0'):
+        with tf.variable_scope("Encoder", auxiliary_name_scope=False):
             for i in range(len(self._conv_fms)):
                 self.conv_kernels.append(tf.get_variable(name=f"Conv{i}_W",
                                                          shape=self._conv_fms[i],
@@ -73,7 +73,7 @@ class Encoder(object):
             self.rnn_states.append(block.zero_state())
 
     def rnn_encoder(self, in_data):
-        with tf.variable_scope("Encoder", auxiliary_name_scope=False, reuse=tf.AUTO_REUSE) and tf.device('/device:GPU:0'):
+        with tf.variable_scope("Encoder", auxiliary_name_scope=False, reuse=tf.AUTO_REUSE):
             for i in range(self.stack_num):
                 conv = conv2d_act(input=in_data,
                                   name=f"Conv{i}",
