@@ -215,6 +215,10 @@ class Evaluator(object):
         aref = (a + b) / n * (a + c)
         gss = (a - aref) / (a + b + c - aref)
         hss = 2 * gss / (gss + 1)
+        pod[pod == np.inf] = 0
+        pod = np.nan_to_num(pod)
+        far[far == np.inf] = 0
+        far = np.nan_to_num(far)
         return pod, far, csi, hss
 
     def evaluate(self, gt, pred):

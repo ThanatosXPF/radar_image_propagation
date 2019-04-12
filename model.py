@@ -56,33 +56,35 @@ class Model(object):
                                                  self._h, self._w, 1),
                                           name="gt")
             self.global_step = tf.Variable(0, trainable=False)
-            encoder_net = Encoder(self._batch,
-                                  self._in_seq,
-                                  gru_filter=c.ENCODER_GRU_FILTER,
-                                  gru_in_chanel=c.ENCODER_GRU_INCHANEL,
-                                  conv_kernel=c.CONV_KERNEL,
-                                  conv_stride=c.CONV_STRIDE,
-                                  h2h_kernel=c.H2H_KERNEL,
-                                  i2h_kernel=c.I2H_KERNEL,
-                                  height=self._h,
-                                  width=self._w)
-            for i in range(self._in_seq):
-                encoder_net.rnn_encoder(self.in_data[:, i, ...])
+            with tf.device('/device:GPU:0'):
+                encoder_net = Encoder(self._batch,
+                                      self._in_seq,
+                                      gru_filter=c.ENCODER_GRU_FILTER,
+                                      gru_in_chanel=c.ENCODER_GRU_INCHANEL,
+                                      conv_kernel=c.CONV_KERNEL,
+                                      conv_stride=c.CONV_STRIDE,
+                                      h2h_kernel=c.H2H_KERNEL,
+                                      i2h_kernel=c.I2H_KERNEL,
+                                      height=self._h,
+                                      width=self._w)
+                for i in range(self._in_seq):
+                    encoder_net.rnn_encoder(self.in_data[:, i, ...])
             states = encoder_net.rnn_states
-            forecaster_net = Forecaster(self._batch,
-                                        self._out_seq,
-                                        gru_filter=c.DECODER_GRU_FILTER,
-                                        gru_in_chanel=c.DECODER_GRU_INCHANEL,
-                                        deconv_kernel=c.DECONV_KERNEL,
-                                        deconv_stride=c.DECONV_STRIDE,
-                                        h2h_kernel=c.H2H_KERNEL,
-                                        i2h_kernel=c.I2H_KERNEL,
-                                        rnn_states=states,
-                                        height=self._h,
-                                        width=self._w)
+            with tf.device('/device:GPU:1'):
+                forecaster_net = Forecaster(self._batch,
+                                            self._out_seq,
+                                            gru_filter=c.DECODER_GRU_FILTER,
+                                            gru_in_chanel=c.DECODER_GRU_INCHANEL,
+                                            deconv_kernel=c.DECONV_KERNEL,
+                                            deconv_stride=c.DECONV_STRIDE,
+                                            h2h_kernel=c.H2H_KERNEL,
+                                            i2h_kernel=c.I2H_KERNEL,
+                                            rnn_states=states,
+                                            height=self._h,
+                                            width=self._w)
 
-            for i in range(self._out_seq):
-                forecaster_net.rnn_forecaster()
+                for i in range(self._out_seq):
+                    forecaster_net.rnn_forecaster()
             pred = tf.concat(forecaster_net.pred, axis=1)
 
             with tf.variable_scope("loss"):

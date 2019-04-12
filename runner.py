@@ -15,7 +15,6 @@ class Runner(object):
     def __init__(self, para_tuple=None, mode="train"):
 
         self.para_tuple = para_tuple
-
         self.model = Model(para_tuple, mode=mode)
         if not para_tuple:
             self.model.init_params()
@@ -138,7 +137,7 @@ def test(para, iter, mode="Test"):
 
 if __name__ == '__main__':
     config_log()
-    # cfg_from_file("")
+    cfg_from_file("/extend/gru_tf_data/0411_8ls2/cfg0.yml")
     # paras = ("first_try", "94999")
     paras = None
     runner = Runner(paras)

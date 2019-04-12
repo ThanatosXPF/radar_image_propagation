@@ -20,7 +20,6 @@ class Clip_Iterator(object):
         except ValueError:
             for c in clips:
                 print(c.shape)
-        print(clips.shape)
         return clips
 
     def sample_valid(self, batch):
