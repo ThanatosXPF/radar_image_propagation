@@ -23,7 +23,6 @@ def config_deconv_infer(height, strides):
 __C = edict()
 c = __C  # type: edict()
 
-
 # iterator
 __C.DATA_BASE_PATH = os.path.join("/extend", "sz17_data")
 __C.REF_PATH = os.path.join(__C.DATA_BASE_PATH, "radarPNG_expand")
@@ -70,16 +69,16 @@ __C.IN_CHANEL = 1
 # (kernel, kernel, in chanel, out chanel)
 
 __C.CONV_KERNEL = ((7, 7, __C.IN_CHANEL, 8),
-               (5, 5, 64, 192),
-               (3, 3, 192, 192))
+                   (5, 5, 64, 192),
+                   (3, 3, 192, 192))
 __C.CONV_STRIDE = (5, 3, 2)
 __C.ENCODER_GRU_FILTER = (64, 192, 192)
 __C.ENCODER_GRU_INCHANEL = (8, 192, 192)
 # decoder
 # (kernel, kernel, out chanel, in chanel)
 __C.DECONV_KERNEL = ((7, 7, 8, 64),
-                 (5, 5, 64, 192),
-                 (4, 4, 192, 192))
+                     (5, 5, 64, 192),
+                     (4, 4, 192, 192))
 __C.DECONV_STRIDE = (5, 3, 2)
 __C.DECODER_GRU_FILTER = (64, 192, 192)
 __C.DECODER_GRU_INCHANEL = (64, 192, 192)
@@ -140,9 +139,9 @@ def _merge_two_config(user_cfg, default_cfg):
                 val = np.array(val, dtype=default_cfg[key].dtype)
             else:
                 raise ValueError(
-                     'Type mismatch ({} vs. {}) '
-                     'for config key: {}'.format(type(default_cfg[key]),
-                                                 type(val), key))
+                    'Type mismatch ({} vs. {}) '
+                    'for config key: {}'.format(type(default_cfg[key]),
+                                                type(val), key))
         # Recursive merge config
         if type(val) is edict:
             try:
@@ -159,7 +158,7 @@ def cfg_from_file(file_name, target=__C):
     """
     import yaml
     with open(file_name, 'r') as f:
-        print('Loading YAML config file from %s' %f)
+        print('Loading YAML config file from %s' % f)
         yaml_cfg = edict(yaml.load(f))
     _merge_two_config(yaml_cfg, target)
 
@@ -184,22 +183,21 @@ def ordered_dump(data, stream=None, Dumper=yaml.SafeDumper, **kwds):
 
 def save_cfg(dir_path, source=__C):
     cfg_count = 0
-    file_path = os.path.join(dir_path, 'cfg%d.yml' %cfg_count)
+    file_path = os.path.join(dir_path, 'cfg%d.yml' % cfg_count)
     while os.path.exists(file_path):
         cfg_count += 1
         file_path = os.path.join(dir_path, 'cfg%d.yml' % cfg_count)
     with open(file_path, 'w') as f:
-        logging.info("Save YAML config file to %s" %file_path)
+        logging.info("Save YAML config file to %s" % file_path)
         ordered_dump(source, f, yaml.SafeDumper, default_flow_style=None)
 
 
 def load_config(file_name):
     import yaml
     with open(file_name, 'r') as f:
-        print('Loading YAML config file from %s' %f)
+        print('Loading YAML config file from %s' % f)
         yaml_cfg = edict(yaml.load(f))
     return yaml_cfg
-
 
 
 if __name__ == '__main__':

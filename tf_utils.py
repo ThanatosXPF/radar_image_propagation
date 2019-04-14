@@ -199,6 +199,24 @@ def up_sampling(input, kshape, stride, num_filter, name):
     return out
 
 
+def inception(input, kernels, biases, stride, name,
+              down_sample=True, down_sample_size=None, padding="SAME"):
+    result = []
+    for k, b in zip(kernels, biases):
+        conv = tf.nn.conv2d(input, k, strides=(1, stride, stride, 1), padding=padding, name=f"{name}_{k.shape[0]}")
+        out = tf.nn.leaky_relu(tf.nn.bias_add(conv, b))
+        result.append(out)
+    if down_sample:
+        down = tf.nn.max_pool(input,
+                              [1, down_sample_size, down_sample_size, 1],
+                              (1, stride, stride, 1),
+                              padding=padding)
+        res = tf.concat(result+[down], axis=-1)
+    else:
+        res = tf.concat(result, axis=-1)
+    return res
+
+
 if __name__ == '__main__':
     gt = np.random.rand(5,5) * 255
     gt = gt.astype(np.uint8)

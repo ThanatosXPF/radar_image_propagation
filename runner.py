@@ -5,7 +5,7 @@ import numpy as np
 from model import Model
 from iterator import Iterator
 from clip_iterator import Clip_Iterator
-from config import c, cfg_from_file
+from config import c, cfg_from_file, save_cfg
 from utils import config_log, save_png
 from utils import normalize_frames
 from evaluation import Evaluator
@@ -22,6 +22,7 @@ class Runner(object):
     def train(self):
         step = 0
         train_iter = Clip_Iterator(c.TRAIN_DIR_CLIPS)
+        save_cfg(c.SAVE_PATH)
         while step < c.MAX_ITER:
             data = train_iter.sample_clips(batch_size=c.BATCH_SIZE)
             in_data = data[:, :c.IN_SEQ, ...]
