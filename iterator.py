@@ -43,9 +43,9 @@ class Iterator(object):
         assert isinstance(time_interval, list)
         self.time_interval = time_interval
         if width is None:
-            width = cfg.W
+            width = 900
         if height is None:
-            height = cfg.H
+            height = 900
 
         self._df = self._df_generate()
         print("df size {}".format(self._df.size))

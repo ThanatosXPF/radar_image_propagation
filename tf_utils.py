@@ -216,6 +216,23 @@ def inception(input, kernels, biases, stride, name,
         res = tf.concat(result, axis=-1)
     return res
 
+def inception_dec(input, kernels, biases, stride, name, infer_shapes,
+              up_sample=True, down_sample_size=None, padding="SAME"):
+    result = []
+    for k, b, s in zip(kernels, biases, infer_shapes):
+        conv = tf.nn.conv2d_transpose(input, k, s, strides=(1, stride, stride, 1), padding=padding, name=f"{name}_{k.shape[0]}")
+        out = tf.nn.leaky_relu(tf.nn.bias_add(conv, b))
+        result.append(out)
+    if up_sample:
+        down = tf.nn.max_pool(input,
+                              [1, down_sample_size, down_sample_size, 1],
+                              (1, stride, stride, 1),
+                              padding=padding)
+        res = tf.concat(result+[down], axis=-1)
+    else:
+        res = tf.concat(result, axis=-1)
+    return res
+
 
 if __name__ == '__main__':
     gt = np.random.rand(5,5) * 255

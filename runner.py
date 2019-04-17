@@ -50,7 +50,7 @@ class Runner(object):
 
     def valid_clips(self, step):
         test_iter = Clip_Iterator(c.VALID_DIR_CLIPS)
-        evaluator = Evaluator(step)
+        evaluator = Evaluator(step, c.OUT_SEQ)
         i = 0
         for data in test_iter.sample_valid(c.BATCH_SIZE):
             in_data = data[:, :c.IN_SEQ, ...]
@@ -74,27 +74,40 @@ class Runner(object):
         if mode == "Valid":
             time_interval = c.RAINY_VALID
             stride = 20
+            batch_size = c.BATCH_SIZE
         else:
             time_interval = c.RAINY_TEST
             stride = 1
+            batch_size = 1
         test_iter = Iterator(time_interval=time_interval,
                              sample_mode="sequent",
-                             seq_len=c.IN_SEQ + c.OUT_SEQ,
+                             seq_len=c.IN_SEQ + c.PREDICT_LENGTH,
                              stride=1)
-        evaluator = Evaluator(iter)
+        evaluator = Evaluator(iter, c.PREDICT_LENGTH, mode="test")
         i = 1
         while not test_iter.use_up:
-            data, date_clip, *_ = test_iter.sample(batch_size=c.BATCH_SIZE)
-            in_data = np.zeros(shape=(c.BATCH_SIZE, c.IN_SEQ, c.H, c.W, c.IN_CHANEL))
-            gt_data = np.zeros(shape=(c.BATCH_SIZE, c.OUT_SEQ, c.H, c.W, 1))
+            data, date_clip, *_ = test_iter.sample(batch_size=batch_size)
+            print(data.shape)
+            in_data = np.zeros(shape=(batch_size,
+                                      c.IN_SEQ,
+                                      c.PREDICTION_H,
+                                      c.PREDICTION_W,
+                                      c.IN_CHANEL))
+            gt_data = np.zeros(shape=(batch_size,
+                                      c.PREDICT_LENGTH,
+                                      c.PREDICTION_H,
+                                      c.PREDICTION_W,
+                                      1))
             if type(data) == type([]):
                 break
-            in_data[...] = data[:, :c.IN_SEQ, ...]
+            in_data[...] = data[:, :c.IN_SEQ, 2:-2, 2:-2, :]
 
             if c.IN_CHANEL == 3:
-                gt_data[...] = data[:, c.IN_SEQ:c.IN_SEQ + c.OUT_SEQ, :, :, 1:-1]
+                gt_data[...] = data[:, c.IN_SEQ:, 2:-2,
+                                    2:-2, 1:-1]
             elif c.IN_CHANEL == 1:
-                gt_data[...] = data[:, c.IN_SEQ:c.IN_SEQ + c.OUT_SEQ, ...]
+                gt_data[...] = data[:, c.IN_SEQ:, 2:-2,
+                                    2:-2, :]
             else:
                 raise NotImplementedError
 
@@ -112,7 +125,7 @@ class Runner(object):
                 if c.IN_CHANEL == 3:
                     in_data = in_data[:, :, :, :, 1:-1]
 
-                for b in range(c.BATCH_SIZE):
+                for b in range(batch_size):
                     predict_date = date_clip[b][c.IN_SEQ]
                     logging.info(f"Save {predict_date} results")
                     if mode == "Valid":
@@ -138,8 +151,8 @@ def test(para, iter, mode="Test"):
 
 if __name__ == '__main__':
     config_log()
-    cfg_from_file("/extend/gru_tf_data/0411_8ls2/cfg0.yml")
+    cfg_from_file("/extend/gru_tf_data/0412_8ls2/cfg0.yml")
     # paras = ("first_try", "94999")
-    paras = None
+    paras = '/extend/gru_tf_data/0411_8ls2/Save/model.ckpt-30000'
     runner = Runner(paras)
     runner.train()

@@ -85,7 +85,8 @@ class Encoder(object):
                                   name=f"Conv{i}",
                                   kernels=self.conv_kernels[i],
                                   biases=self.conv_bias[i],
-                                  stride=self.conv_stride[i])
+                                  stride=self.conv_stride[i],
+                                 down_sample=False)
 
                 output, states = self.rnn_blocks[i](inputs=conv,
                                                     state=self.rnn_states[i])

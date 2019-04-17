@@ -177,15 +177,16 @@ def gdl_loss(pred, gt):
 
 
 class Evaluator(object):
-    def __init__(self, step):
+    def __init__(self, step, seq, mode="train"):
         self.metric = {}
         for threshold in c.EVALUATION_THRESHOLDS:
             self.metric[threshold] = {
-                "pod": np.zeros((c.OUT_SEQ, 1), np.float32),
-                "far": np.zeros((c.OUT_SEQ, 1), np.float32),
-                "csi": np.zeros((c.OUT_SEQ, 1), np.float32),
-                "hss": np.zeros((c.OUT_SEQ, 1), np.float32)
+                "pod": np.zeros((seq, 1), np.float32),
+                "far": np.zeros((seq, 1), np.float32),
+                "csi": np.zeros((seq, 1), np.float32),
+                "hss": np.zeros((seq, 1), np.float32)
             }
+        self.mode = mode
         self.step = step
         self.total = 0
         print(self.metric.keys())
@@ -219,6 +220,8 @@ class Evaluator(object):
         pod = np.nan_to_num(pod)
         far[far == np.inf] = 0
         far = np.nan_to_num(far)
+        csi[csi == np.inf] = 0
+        csi = np.nan_to_num(csi)
         return pod, far, csi, hss
 
     def evaluate(self, gt, pred):
@@ -236,7 +239,7 @@ class Evaluator(object):
         fars = []
         csis = []
         hsss = []
-        save_path = join(c.SAVE_METRIC, f"{self.step}")
+        save_path = join(c.SAVE_METRIC, f"{self.mode}_{self.step}")
         if not exists(save_path):
             makedirs(save_path)
         # draw line chart

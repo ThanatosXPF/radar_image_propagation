@@ -4,7 +4,7 @@ from tensorflow.contrib.layers import xavier_initializer
 from conv_gru import ConvGRUCell
 from config import c
 from config import config_gru_fms, config_deconv_infer
-from tf_utils import deconv2d_act
+from tf_utils import deconv2d_act, inception_dec
 
 
 class Forecaster(object):
@@ -65,16 +65,24 @@ class Forecaster(object):
     def init_parameters(self):
         with tf.variable_scope("Forecaster", auxiliary_name_scope=False):
             for i in range(len(self._conv_fms)):
-                self.conv_kernels.append(tf.get_variable(name=f"Deconv{i}_W",
-                                                         shape=self._conv_fms[i],
-                                                         initializer=xavier_initializer(uniform=False),
-                                                         dtype=self._dtype))
-                self.conv_bias.append(tf.get_variable(name=f"Deconv{i}_b",
-                                                      shape=[self._conv_fms[i][-2]]))
-                self.infer_shape.append(
-                    (self._batch, self._infer_shape[i], self._infer_shape[i], self._conv_fms[i][-2]))
+                conv_kernels = []
+                biases = []
+                shapes = []
+                for j in range(len(self._conv_fms[i])):
+                    kernel = self._conv_fms[i][j]
+                    conv_kernels.append(tf.get_variable(name=f"Conv{i}_W{j}",
+                                                        shape=kernel,
+                                                        initializer=xavier_initializer(uniform=False),
+                                                        dtype=self._dtype))
+                    biases.append(tf.get_variable(name=f"Conv{i}_b{j}",
+                                                  shape=kernel[-2]))
+                    shapes.append((self._batch, self._infer_shape[i], self._infer_shape[i], kernel[-2]))
+                self.conv_kernels.append(conv_kernels)
+                self.conv_bias.append(biases)
+                self.infer_shape.append(shapes)
+
             self.final_conv.append(tf.get_variable(name="Final_conv1_W",
-                                                   shape=(3, 3, 8, 8),
+                                                   shape=(3, 3, 16, 8),
                                                    initializer=xavier_initializer(uniform=False),
                                                    dtype=self._dtype))
             self.final_bias.append(tf.get_variable(name="Final_conv1_b",
@@ -92,12 +100,13 @@ class Forecaster(object):
             for i in range(self.stack_num - 1, -1, -1):
                 output, states = self.rnn_blocks[i](inputs=in_data,
                                                     state=self.rnn_states[i])
-                deconv = deconv2d_act(input=output,
+                deconv = inception_dec(input=output,
                                       name=f"Deconv{i}",
-                                      kernel=self.conv_kernels[i],
-                                      bias=self.conv_bias[i],
-                                      infer_shape=self.infer_shape[i],
-                                      strides=self.conv_stride[i])
+                                      kernels=self.conv_kernels[i],
+                                      biases=self.conv_bias[i],
+                                      infer_shapes=self.infer_shape[i],
+                                      stride=self.conv_stride[i],
+                                       up_sample=False)
 
                 self.rnn_states[i] = states
                 in_data = deconv

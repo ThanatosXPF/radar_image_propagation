@@ -26,8 +26,6 @@ class Model(object):
             self._w = c.PREDICTION_W
 
         self._in_seq = c.IN_SEQ
-        self._h = c.H
-        self._w = c.W
         self._in_c = c.IN_CHANEL
 
         self.define_graph()

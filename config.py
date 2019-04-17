@@ -30,7 +30,7 @@ __C.TRAIN_DIR_CLIPS = os.path.join(__C.DATA_BASE_PATH, "15-17_clips")
 __C.VALID_DIR_CLIPS = os.path.join(__C.DATA_BASE_PATH, "18_clips")
 
 __C.BASE_PATH = os.path.join("/extend", "gru_tf_data")
-__C.SAVE_PATH = os.path.join(__C.BASE_PATH, "0409_small1")
+__C.SAVE_PATH = os.path.join(__C.BASE_PATH, "0415_inception")
 __C.SAVE_MODEL = os.path.join(__C.SAVE_PATH, "Save")
 __C.SAVE_VALID = os.path.join(__C.SAVE_PATH, "Valid")
 __C.SAVE_TEST = os.path.join(__C.SAVE_PATH, "Test")
@@ -68,20 +68,20 @@ __C.IN_CHANEL = 1
 # encoder
 # (kernel, kernel, in chanel, out chanel)
 
-__C.CONV_KERNEL = ((7, 7, __C.IN_CHANEL, 8),
-                   (5, 5, 64, 192),
-                   (3, 3, 192, 192))
+__C.CONV_KERNEL = (((7, 7, __C.IN_CHANEL, 32), (5, 5, __C.IN_CHANEL, 16),(11, 11, __C.IN_CHANEL, 16)),
+                   ((5, 5, 64, 192), (7, 7, 64, 32), (3, 3, 64, 32)),
+                   ((3, 3, 256, 256), (5, 5, 256, 32), (1, 1, 256, 32)))
 __C.CONV_STRIDE = (5, 3, 2)
-__C.ENCODER_GRU_FILTER = (64, 192, 192)
-__C.ENCODER_GRU_INCHANEL = (8, 192, 192)
+__C.ENCODER_GRU_FILTER = (64, 256, 320)
+__C.ENCODER_GRU_INCHANEL = (64, 256, 320)
 # decoder
 # (kernel, kernel, out chanel, in chanel)
-__C.DECONV_KERNEL = ((7, 7, 8, 64),
-                     (5, 5, 64, 192),
-                     (4, 4, 192, 192))
+__C.DECONV_KERNEL = (((7, 7, 8, 64), (11, 11, 4, 64), (5, 5, 4, 64)),
+                     ((5, 5, 32, 256), (7, 7, 16, 256), (3, 3, 16, 256)),
+                     ((4, 4, 192, 320), (5, 5, 32, 320), (2, 2, 32, 320)))
 __C.DECONV_STRIDE = (5, 3, 2)
-__C.DECODER_GRU_FILTER = (64, 192, 192)
-__C.DECODER_GRU_INCHANEL = (64, 192, 192)
+__C.DECODER_GRU_FILTER = (64, 256, 320)
+__C.DECODER_GRU_INCHANEL = (64, 256, 320)
 
 # Encoder Forecaster
 __C.IN_SEQ = 5
