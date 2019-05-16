@@ -31,7 +31,7 @@ __C.TRAIN_DIR_CLIPS = os.path.join(__C.DATA_BASE_PATH, "15-17_clips")
 __C.VALID_DIR_CLIPS = os.path.join(__C.DATA_BASE_PATH, "18_clips")
 
 __C.BASE_PATH = os.path.join("/extend", "gru_tf_data")
-__C.SAVE_PATH = os.path.join(__C.BASE_PATH, "0409_small1")
+__C.SAVE_PATH = os.path.join(__C.BASE_PATH, "0512_ebgan")
 __C.SAVE_MODEL = os.path.join(__C.SAVE_PATH, "Save")
 __C.SAVE_VALID = os.path.join(__C.SAVE_PATH, "Valid")
 __C.SAVE_TEST = os.path.join(__C.SAVE_PATH, "Test")
@@ -120,6 +120,11 @@ __C.PREDICT_LENGTH = 20
 __C.PREDICTION_H = 900
 __C.PREDICTION_W = 900
 
+# Discriminator
+__C.ADVERSARIAL = True
+__C.ADV_LAMBDA = 1.0
+__C.MARGIN = 1
+
 
 def _merge_two_config(user_cfg, default_cfg):
     """ Merge user's config into default config dictionary, clobbering the
@@ -203,5 +208,5 @@ def load_config(file_name):
 
 
 if __name__ == '__main__':
-    cfg_from_file("/extend/gru_tf_data/0411_test/cfg0.yml")
-    save_cfg("/extend/gru_tf_data/0411_test")
+    # cfg_from_file("/extend/gru_tf_data/0411_test/cfg0.yml")
+    save_cfg("/extend/gru_tf_data/0512_ebgan")

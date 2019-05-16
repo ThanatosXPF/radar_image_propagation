@@ -177,14 +177,14 @@ def gdl_loss(pred, gt):
 
 
 class Evaluator(object):
-    def __init__(self, step):
+    def __init__(self, step, length=c.OUT_SEQ):
         self.metric = {}
         for threshold in c.EVALUATION_THRESHOLDS:
             self.metric[threshold] = {
-                "pod": np.zeros((c.OUT_SEQ, 1), np.float32),
-                "far": np.zeros((c.OUT_SEQ, 1), np.float32),
-                "csi": np.zeros((c.OUT_SEQ, 1), np.float32),
-                "hss": np.zeros((c.OUT_SEQ, 1), np.float32)
+                "pod": np.zeros((length, 1), np.float32),
+                "far": np.zeros((length, 1), np.float32),
+                "csi": np.zeros((length, 1), np.float32),
+                "hss": np.zeros((length, 1), np.float32)
             }
         self.step = step
         self.total = 0
