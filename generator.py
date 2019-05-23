@@ -86,28 +86,27 @@ class Generator(object):
                 weights = get_loss_weight_symbol(pred)
 
                 self.result = pred
-                self.mse = weighted_mse(pred, gt, weights)
+                self.mse = tf.reduce_mean(tf.square(pred - gt))
                 self.mae = weighted_mae(pred, gt, weights)
                 self.gdl = gdl_loss(pred, gt)
+                self.d_loss = self.result
 
                 if c.ADVERSARIAL:
                     self.d_pred = tf.placeholder(self._dtype, (self._batch, self._out_seq, self._h, self._w, 1))
-                    self.d_loss = weighted_mse(self.d_pred, gt, weights)
-                    loss = c.L1_LAMBDA * self.mse \
-                           + c.L2_LAMBDA * self.mae \
+                    self.d_loss = tf.reduce_mean(tf.square(self.d_pred - gt))
+                    self.loss = c.L1_LAMBDA * self.mae \
+                           + c.L2_LAMBDA * self.mse \
                            + c.GDL_LAMBDA * self.gdl \
                            + c.ADV_LAMBDA * self.d_loss
                 else:
-                    loss = c.L1_LAMBDA * self.mse + c.L2_LAMBDA * self.mae + c.GDL_LAMBDA * self.gdl
+                    self.loss = c.L1_LAMBDA * self.mae + c.L2_LAMBDA * self.mse + c.GDL_LAMBDA * self.gdl
 
-                self.loss = loss
-
-                self.optimizer = tf.train.AdamOptimizer(c.LR).minimize(loss, global_step=self.global_step)
+                self.optimizer = tf.train.AdamOptimizer(c.LR).minimize(self.loss, global_step=self.global_step)
 
                 self.summary = tf.summary.merge([tf.summary.scalar('mse', self.mse),
                                                  tf.summary.scalar('mae', self.mae),
                                                  tf.summary.scalar('gdl', self.gdl),
-                                                 tf.summary.scalar('combine_loss', loss)])
+                                                 tf.summary.scalar('combine_loss', self.loss)])
 
     def train_step(self, in_data, gt_data, d_model=None):
         feed_dict = {self.in_data: in_data, self.gt_data: gt_data}

@@ -78,7 +78,7 @@ class Runner(object):
             stride = 1
         test_iter = Iterator(time_interval=time_interval,
                              sample_mode="sequent",
-                             seq_len=c.IN_SEQ + c.OUT_SEQ,
+                             seq_len=c.IN_SEQ + c.PREDICTION_SEQ,
                              stride=1)
         evaluator = Evaluator(iter)
         i = 1

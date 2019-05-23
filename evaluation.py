@@ -177,7 +177,7 @@ def gdl_loss(pred, gt):
 
 
 class Evaluator(object):
-    def __init__(self, step, length=c.OUT_SEQ):
+    def __init__(self, step, length=c.OUT_SEQ, mode="train"):
         self.metric = {}
         for threshold in c.EVALUATION_THRESHOLDS:
             self.metric[threshold] = {
@@ -188,6 +188,7 @@ class Evaluator(object):
             }
         self.step = step
         self.total = 0
+        self.mode = mode
         print(self.metric.keys())
 
     def get_metrics(self, gt, pred, threshold):
@@ -236,7 +237,7 @@ class Evaluator(object):
         fars = []
         csis = []
         hsss = []
-        save_path = join(c.SAVE_METRIC, f"{self.step}")
+        save_path = join(c.SAVE_METRIC, f"{self.mode}_{self.step}")
         if not exists(save_path):
             makedirs(save_path)
         # draw line chart

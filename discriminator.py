@@ -122,7 +122,7 @@ class Discriminator:
 
                 self.mse_real, self.mse_pred = mse_real, mse_pred
 
-                self.loss = mse_real + tf.maximum(1 - mse_pred, 0)
+                self.loss = mse_real + tf.maximum(10 - mse_pred, 0)
 
                 self.summary = tf.summary.merge([
                     tf.summary.scalar('d_loss', self.loss),

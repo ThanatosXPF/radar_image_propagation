@@ -38,6 +38,8 @@ class AVGRunner:
         self.g_model = Generator(self.sess, self.summary_writer, mode=mode)
         if c.ADVERSARIAL and mode == "train":
             self.d_model = Discriminator(self.sess, self.summary_writer)
+        else:
+            self.d_model = None
 
         self.saver = tf.train.Saver(max_to_keep=0)
 
@@ -47,13 +49,13 @@ class AVGRunner:
             self.sess.run(tf.global_variables_initializer())
 
     def get_train_batch(self, iterator):
-        data = iterator.sample_clips(batch_size=self._batch)
-        in_data = data[:, :self._in_seq, ...]
+        data, *_ = iterator.sample(batch_size=self._batch)
+        in_data = data[:, :self._in_seq, 2:-2, 2:-2, :]
 
         if c.IN_CHANEL == 3:
-            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, :, :, 1:-1]
+            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, 2:-2, 2:-2, 1:-1]
         elif c.IN_CHANEL == 1:
-            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, ...]
+            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, 2:-2, 2:-2,:]
         else:
             raise NotImplementedError
 
@@ -63,7 +65,10 @@ class AVGRunner:
         return in_data, gt_data
 
     def train(self):
-        train_iter = Clip_Iterator(c.TRAIN_DIR_CLIPS)
+        train_iter = Iterator(time_interval=c.RAINY_TRAIN,
+                             sample_mode="random",
+                             seq_len=self._in_seq + self._out_seq,
+                             stride=1)
         while self.global_step < c.MAX_ITER:
 
             in_data, gt_data = self.get_train_batch(train_iter)
@@ -78,15 +83,16 @@ class AVGRunner:
             self.global_step = global_step
 
             logging.info(f"Iter {self.global_step}: \n\t "
-                         f"g_loss: {g_loss} \n\t"
-                         f"mse: {mse} \n\t "
-                         f"d_loss: {d_loss}")
+                         f"g_loss: {g_loss:.4f} \n\t"
+                         f"mse: {mse:.4f} \n\t "
+                         f"mse_real: {gd_loss:.4f} \n\t"
+                         f"d_loss: {d_loss:.4f}")
 
             if (self.global_step + 1) % c.SAVE_ITER == 0:
                 self.save_model()
 
             if (self.global_step + 1) % c.VALID_ITER == 0:
-                self.valid()
+                self.run_benchmark(global_step, mode="Valid")
 
     def valid(self):
         test_iter = Clip_Iterator(c.VALID_DIR_CLIPS)
@@ -107,9 +113,9 @@ class AVGRunner:
             mse, mae, gdl, pred = self.g_model.valid_step(in_data, gt_data)
             evaluator.evaluate(gt_data, pred)
             logging.info(f"Iter {self.global_step} {i}: \n\t "
-                         f"mse:{mse} \n\t "
-                         f"mae:{mae} \n\t "
-                         f"gdl:{gdl}")
+                         f"mse:{mse:.4f} \n\t "
+                         f"mae:{mae:.4f} \n\t "
+                         f"gdl:{gdl:.4f}")
             i += 1
         evaluator.done()
 
@@ -131,21 +137,20 @@ class AVGRunner:
                              sample_mode="sequent",
                              seq_len=self._in_seq + self._out_seq,
                              stride=1)
-        evaluator = Evaluator(iter, length=self._out_seq)
+        evaluator = Evaluator(iter, length=self._out_seq, mode=mode)
         i = 1
         while not test_iter.use_up:
             data, date_clip, *_ = test_iter.sample(batch_size=self._batch)
             in_data = np.zeros(shape=(self._batch, self._in_seq, self._h, self._w, c.IN_CHANEL))
             gt_data = np.zeros(shape=(self._batch, self._out_seq, self._h, self._w, 1))
-            print(data.shape)
             if type(data) == type([]):
                 break
-            in_data[...] = data[:, :self._in_seq, ...]
+            in_data[...] = data[:, :self._in_seq, 2:-2, 2:-2, :]
 
             if c.IN_CHANEL == 3:
-                gt_data[...] = data[:, self._in_seq:self._in_seq + self._out_seq, :, :, 1:-1]
+                gt_data[...] = data[:, self._in_seq:self._in_seq + self._out_seq, 2:-2, 2:-2, 1:-1]
             elif c.IN_CHANEL == 1:
-                gt_data[...] = data[:, self._in_seq:self._in_seq + self._out_seq, ...]
+                gt_data[...] = data[:, self._in_seq:self._in_seq + self._out_seq, 2:-2, 2:-2, :]
             else:
                 raise NotImplementedError
 
@@ -189,12 +194,13 @@ def test(para, iter, mode="Test"):
 
 if __name__ == '__main__':
     config_log()
-    cfg_from_file("/extend/gru_tf_data/0512_ebtest/cfg0.yml")
+    cfg_from_file("/extend/gru_tf_data/0517_ebgan/cfg1.yml")
     # paras = ("first_try", "94999")
-    paras = '/extend/gru_tf_data/0512_ebtest/Save/model.ckpt-49999'
-    # runner = AVGRunner(paras)
-    # runner.train()
-    test(paras, 49999)
+    # paras = '/extend/gru_tf_data/0512_ebtest/Save/model.ckpt-49999'
+    paras = None
+    runner = AVGRunner(paras)
+    runner.train()
+    # test(paras, 49999)
 
 
 
