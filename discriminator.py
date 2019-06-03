@@ -13,10 +13,8 @@ class Discriminator:
 
         self._batch = c.BATCH_SIZE
         self._out_seq = c.OUT_SEQ
-        self._h = c.H
-        self._w = c.W
-
         self._in_seq = c.IN_SEQ
+
         self._h = c.H
         self._w = c.W
 
@@ -37,82 +35,15 @@ class Discriminator:
                 pred = tf.transpose(self.pred_data, [0, 4, 2, 3, 1])
                 real = tf.transpose(self.real_data, [0, 4, 2, 3, 1])
 
-                data = tf.concat([pred, real], axis=0)
+                # data = tf.concat([pred, real], axis=0)
+                pred_data = tf.reshape(pred, (self._batch , self._h, self._w, self._out_seq))
+                d_pred = self.encoder_decoder(pred_data)
+                real_data = tf.reshape(real, (self._batch , self._h, self._w, self._out_seq))
+                d_real = self.encoder_decoder(real_data, reuse=True)
 
-                data = tf.reshape(data, (self._batch * 2, self._h, self._w, self._out_seq))
-
-                conv1 = tf.layers.conv2d(data, 32, 3, (1, 1),
-                                         activation=tf.nn.leaky_relu,
-                                         padding="SAME",
-                                         kernel_initializer=xavier_initializer(uniform=False))
-
-                bn1 = tf.layers.batch_normalization(conv1)
-
-                conv2 = tf.layers.conv2d(bn1, 32, 3, (2, 2),
-                                         activation=tf.nn.leaky_relu,
-                                         padding="SAME",
-                                         kernel_initializer=xavier_initializer(uniform=False))
-
-                bn2 = tf.layers.batch_normalization(conv2)
-
-                conv3 = tf.layers.conv2d(bn2, 64, 3, (2, 2),
-                                         activation=tf.nn.leaky_relu,
-                                         padding="SAME",
-                                         kernel_initializer=xavier_initializer(uniform=False))
-
-                bn3 = tf.layers.batch_normalization(conv3)
-
-                conv4 = tf.layers.conv2d(bn3, 96, 3, (2, 2),
-                                         activation=tf.nn.leaky_relu,
-                                         padding="SAME",
-                                         kernel_initializer=xavier_initializer(uniform=False))
-
-                bn4 = tf.layers.batch_normalization(conv4)
-
-                conv5 = tf.layers.conv2d(bn4, 128, 3, (2, 2),
-                                         activation=tf.nn.leaky_relu,
-                                         padding="SAME",
-                                         kernel_initializer=xavier_initializer(uniform=False))
-
-                bn5 = tf.layers.batch_normalization(conv5)
-
-                deconv1 = tf.layers.conv2d_transpose(bn5, 128, 3, (2, 2),
-                                                     activation=tf.nn.leaky_relu,
-                                                     padding="SAME",
-                                                     kernel_initializer=xavier_initializer(uniform=False))
-
-                bn6 = tf.layers.batch_normalization(deconv1)
-
-                deconv2 = tf.layers.conv2d_transpose(bn6, 96, 3, (2, 2),
-                                                     activation=tf.nn.leaky_relu,
-                                                     padding="SAME",
-                                                     kernel_initializer=xavier_initializer(uniform=False))
-
-                bn7 = tf.layers.batch_normalization(deconv2)
-
-                deconv3 = tf.layers.conv2d_transpose(bn7, 64, 3, (2, 2),
-                                                     activation=tf.nn.leaky_relu,
-                                                     padding="SAME",
-                                                     kernel_initializer=xavier_initializer(uniform=False))
-
-                bn8 = tf.layers.batch_normalization(deconv3)
-
-                deconv4 = tf.layers.conv2d_transpose(bn8, 32, 3, (2, 2),
-                                                     activation=tf.nn.leaky_relu,
-                                                     padding="SAME",
-                                                     kernel_initializer=xavier_initializer(uniform=False))
-
-                bn9 = tf.layers.batch_normalization(deconv4)
-
-                deconv5 = tf.layers.conv2d_transpose(bn9, self._out_seq, 3, (1, 1),
-                                                     activation=tf.nn.leaky_relu,
-                                                     padding="SAME",
-                                                     kernel_initializer=xavier_initializer(uniform=False))
 
             with tf.name_scope("Discriminator_loss"):
                 self.global_step = tf.Variable(0, trainable=False)
-
-                d_pred, d_real = tf.split(deconv5, 2, axis=0)
 
                 mid = tf.transpose(d_pred, [0, 3, 1, 2])
                 self.d_pred = tf.reshape(mid, (self._batch, self._out_seq, self._h, self._w, 1))
@@ -122,7 +53,7 @@ class Discriminator:
 
                 self.mse_real, self.mse_pred = mse_real, mse_pred
 
-                self.loss = mse_real + tf.maximum(10 - mse_pred, 0)
+                self.loss = mse_real + tf.maximum(1 - mse_pred, 0)
 
                 self.summary = tf.summary.merge([
                     tf.summary.scalar('d_loss', self.loss),
@@ -133,6 +64,95 @@ class Discriminator:
                 self.optim = tf.train.AdamOptimizer(c.LR).minimize(self.loss,
                                                                    global_step=self.global_step,
                                                                    name="discriminator_op")
+    def encoder_decoder(self, data, reuse=None):
+        conv1 = tf.layers.conv2d(data, 10, 3, (1, 1),
+                                 activation=tf.nn.leaky_relu,
+                                 padding="SAME",
+                                 kernel_initializer=xavier_initializer(uniform=False),
+                                 name="conv1",
+                                 reuse=reuse)
+
+        bn1 = tf.layers.batch_normalization(conv1, name="bn1", reuse=reuse)
+
+        conv2 = tf.layers.conv2d(bn1, 16, 3, (2, 2),
+                                 activation=tf.nn.leaky_relu,
+                                 padding="SAME",
+                                 kernel_initializer=xavier_initializer(uniform=False),
+                                 name="conv2",
+                                 reuse=reuse)
+
+        bn2 = tf.layers.batch_normalization(conv2, name="bn2", reuse=reuse)
+
+        conv3 = tf.layers.conv2d(bn2, 16, 3, (2, 2),
+                                 activation=tf.nn.leaky_relu,
+                                 padding="SAME",
+                                 kernel_initializer=xavier_initializer(uniform=False),
+                                 name="conv3",
+                                 reuse=reuse)
+
+        bn3 = tf.layers.batch_normalization(conv3, name="bn3", reuse=reuse)
+
+        conv4 = tf.layers.conv2d(bn3, 32, 3, (2, 2),
+                                 activation=tf.nn.leaky_relu,
+                                 padding="SAME",
+                                 kernel_initializer=xavier_initializer(uniform=False),
+                                 name="conv4",
+                                 reuse=reuse)
+
+        bn4 = tf.layers.batch_normalization(conv4, name="bn4", reuse=reuse)
+
+        conv5 = tf.layers.conv2d(bn4, 32, 3, (2, 2),
+                                 activation=tf.nn.leaky_relu,
+                                 padding="SAME",
+                                 kernel_initializer=xavier_initializer(uniform=False),
+                                 name="conv5",
+                                 reuse=reuse)
+
+        bn5 = tf.layers.batch_normalization(conv5, name="bn5", reuse=reuse)
+
+        deconv1 = tf.layers.conv2d_transpose(bn5, 32, 3, (2, 2),
+                                             activation=tf.nn.leaky_relu,
+                                             padding="SAME",
+                                             kernel_initializer=xavier_initializer(uniform=False),
+                                             name="deconv1",
+                                             reuse=reuse)
+
+        bn6 = tf.layers.batch_normalization(deconv1, name="bn6", reuse=reuse)
+
+        deconv2 = tf.layers.conv2d_transpose(bn6, 32, 3, (2, 2),
+                                             activation=tf.nn.leaky_relu,
+                                             padding="SAME",
+                                             kernel_initializer=xavier_initializer(uniform=False),
+                                             name="deconv2",
+                                             reuse=reuse)
+
+        bn7 = tf.layers.batch_normalization(deconv2, name="bn7", reuse=reuse)
+
+        deconv3 = tf.layers.conv2d_transpose(bn7, 16, 3, (2, 2),
+                                             activation=tf.nn.leaky_relu,
+                                             padding="SAME",
+                                             kernel_initializer=xavier_initializer(uniform=False),
+                                             name="deconv3",
+                                             reuse=reuse)
+
+        bn8 = tf.layers.batch_normalization(deconv3, name="bn8", reuse=reuse)
+
+        deconv4 = tf.layers.conv2d_transpose(bn8, 16, 3, (2, 2),
+                                             activation=tf.nn.leaky_relu,
+                                             padding="SAME",
+                                             kernel_initializer=xavier_initializer(uniform=False),
+                                             name="deconv4",
+                                             reuse=reuse)
+
+        bn9 = tf.layers.batch_normalization(deconv4, name="bn9", reuse=reuse)
+
+        deconv5 = tf.layers.conv2d_transpose(bn9, self._out_seq, 3, (1, 1),
+                                             activation=tf.nn.leaky_relu,
+                                             padding="SAME",
+                                             kernel_initializer=xavier_initializer(uniform=False),
+                                             name="deconv5",
+                                             reuse=reuse)
+        return deconv5
 
     def train_step(self, in_data, gt_data, g_model):
         g_feed_dict = {g_model.in_data: in_data, g_model.gt_data: gt_data}

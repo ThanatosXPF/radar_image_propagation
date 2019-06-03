@@ -73,8 +73,11 @@ class AVGRunner:
 
             in_data, gt_data = self.get_train_batch(train_iter)
 
-            if c.ADVERSARIAL:
+            if c.ADVERSARIAL and self.global_step > c.ADV_INVOLVE:
+                print("start d_model")
                 d_loss, *_ = self.d_model.train_step(in_data, gt_data, self.g_model)
+            else:
+                d_loss = 0
 
             in_data, gt_data = self.get_train_batch(train_iter)
 
@@ -129,7 +132,7 @@ class AVGRunner:
     def run_benchmark(self, iter, mode="Test"):
         if mode == "Valid":
             time_interval = c.RAINY_VALID
-            stride = 20
+            stride = 5
         else:
             time_interval = c.RAINY_TEST
             stride = 1
@@ -194,7 +197,7 @@ def test(para, iter, mode="Test"):
 
 if __name__ == '__main__':
     config_log()
-    cfg_from_file("/extend/gru_tf_data/0517_ebgan/cfg1.yml")
+    cfg_from_file("/extend/gru_tf_data/0523_ebgan/cfg1.yml")
     # paras = ("first_try", "94999")
     # paras = '/extend/gru_tf_data/0512_ebtest/Save/model.ckpt-49999'
     paras = None

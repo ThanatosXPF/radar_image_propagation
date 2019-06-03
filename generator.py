@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 from encoder import Encoder
@@ -30,6 +31,8 @@ class Generator(object):
         # self._h = c.H
         # self._w = c.W
         self._in_c = c.IN_CHANEL
+        self.adv_involve = tf.constant(c.ADV_INVOLVE)
+        self.gl_st = 0
 
         self.define_graph()
 
@@ -94,10 +97,19 @@ class Generator(object):
                 if c.ADVERSARIAL:
                     self.d_pred = tf.placeholder(self._dtype, (self._batch, self._out_seq, self._h, self._w, 1))
                     self.d_loss = tf.reduce_mean(tf.square(self.d_pred - gt))
-                    self.loss = c.L1_LAMBDA * self.mae \
-                           + c.L2_LAMBDA * self.mse \
-                           + c.GDL_LAMBDA * self.gdl \
-                           + c.ADV_LAMBDA * self.d_loss
+                    self.loss = tf.cond(self.global_step > self.adv_involve,
+                                        lambda: c.L1_LAMBDA * self.mae \
+                                                + c.L2_LAMBDA * self.mse \
+                                                + c.GDL_LAMBDA * self.gdl \
+                                                + c.ADV_LAMBDA * self.d_loss,
+                                        lambda: c.L1_LAMBDA * self.mae \
+                                                + c.L2_LAMBDA * self.mse \
+                                                + c.GDL_LAMBDA * self.gdl
+                                        )
+                    # self.loss = c.L1_LAMBDA * self.mae \
+                    #        + c.L2_LAMBDA * self.mse \
+                    #        + c.GDL_LAMBDA * self.gdl \
+                    #        + c.ADV_LAMBDA * self.d_loss
                 else:
                     self.loss = c.L1_LAMBDA * self.mae + c.L2_LAMBDA * self.mse + c.GDL_LAMBDA * self.gdl
 
@@ -111,13 +123,16 @@ class Generator(object):
     def train_step(self, in_data, gt_data, d_model=None):
         feed_dict = {self.in_data: in_data, self.gt_data: gt_data}
         if c.ADVERSARIAL:
-            g_pred = self.sess.run(self.result, feed_dict=feed_dict)
+            if self.gl_st > c.ADV_INVOLVE:
+                g_pred = self.sess.run(self.result, feed_dict=feed_dict)
 
-            d_feed_dict = {d_model.real_data: gt_data, d_model.pred_data: g_pred}
+                d_feed_dict = {d_model.real_data: gt_data, d_model.pred_data: g_pred}
 
-            d_pred = d_model.sess.run(d_model.d_pred, feed_dict=d_feed_dict)
+                d_pred = d_model.sess.run(d_model.d_pred, feed_dict=d_feed_dict)
 
-            feed_dict[self.d_pred] = d_pred
+                feed_dict[self.d_pred] = d_pred
+            else:
+                feed_dict[self.d_pred] = np.zeros((self._batch, self._out_seq, self._h, self._w, 1))
         _, loss, mse, d_loss, pred, summary, global_step = \
             self.sess.run([self.optimizer,
                            self.loss,
@@ -128,6 +143,7 @@ class Generator(object):
                            self.global_step],
                           feed_dict=feed_dict)
 
+        self.gl_st = global_step
         print("pred: ", pred.min(), pred.max())
         print("gt: ", gt_data.min(), gt_data.max())
         if global_step % c.SUMMARY_ITER == 0:
