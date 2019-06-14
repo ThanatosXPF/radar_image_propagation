@@ -124,7 +124,7 @@ __C.PREDICTION_W = 900
 __C.ADVERSARIAL = True
 __C.ADV_LAMBDA = 1.0
 __C.MARGIN = 1
-__C.ADV_INVOLVE = 100000
+__C.ADV_INVOLVE = 0
 
 
 def _merge_two_config(user_cfg, default_cfg):

@@ -50,12 +50,12 @@ class AVGRunner:
 
     def get_train_batch(self, iterator):
         data, *_ = iterator.sample(batch_size=self._batch)
-        in_data = data[:, :self._in_seq, 2:-2, 2:-2, :]
+        in_data = data[:, :self._in_seq, :, :, :]
 
         if c.IN_CHANEL == 3:
-            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, 2:-2, 2:-2, 1:-1]
+            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, :, :, :]
         elif c.IN_CHANEL == 1:
-            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, 2:-2, 2:-2,:]
+            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, :, :,:]
         else:
             raise NotImplementedError
 
@@ -148,12 +148,12 @@ class AVGRunner:
             gt_data = np.zeros(shape=(self._batch, self._out_seq, self._h, self._w, 1))
             if type(data) == type([]):
                 break
-            in_data[...] = data[:, :self._in_seq, 2:-2, 2:-2, :]
+            in_data[...] = data[:, :self._in_seq, :, :, :]
 
             if c.IN_CHANEL == 3:
-                gt_data[...] = data[:, self._in_seq:self._in_seq + self._out_seq, 2:-2, 2:-2, 1:-1]
+                gt_data[...] = data[:, self._in_seq:self._in_seq + self._out_seq, :, :, :]
             elif c.IN_CHANEL == 1:
-                gt_data[...] = data[:, self._in_seq:self._in_seq + self._out_seq, 2:-2, 2:-2, :]
+                gt_data[...] = data[:, self._in_seq:self._in_seq + self._out_seq, :, :, :]
             else:
                 raise NotImplementedError
 
@@ -197,7 +197,7 @@ def test(para, iter, mode="Test"):
 
 if __name__ == '__main__':
     config_log()
-    cfg_from_file("/extend/gru_tf_data/0523_ebgan/cfg1.yml")
+    cfg_from_file("/extend/gru_tf_data/0606_ebgan/cfg0.yml")
     # paras = ("first_try", "94999")
     # paras = '/extend/gru_tf_data/0512_ebtest/Save/model.ckpt-49999'
     paras = None
