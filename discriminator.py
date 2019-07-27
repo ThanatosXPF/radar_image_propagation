@@ -41,8 +41,7 @@ class Discriminator:
             with tf.name_scope("Discriminator_loss"):
                 self.global_step = tf.Variable(0, trainable=False)
 
-                mid = tf.transpose(d_pred, [0, 3, 1, 2])
-                self.d_pred = tf.reshape(mid, (self._batch, self._out_seq, self._h, self._w, 1))
+                self.d_pred = d_pred
 
                 mse_real = tf.reduce_mean(tf.square(d_real - self.real_data))
                 mse_pred = tf.reduce_mean(tf.square(d_pred - self.pred_data))
