@@ -38,10 +38,10 @@ __C.SAVE_TEST = os.path.join(__C.SAVE_PATH, "Test")
 __C.SAVE_SUMMARY = os.path.join(__C.SAVE_PATH, "Summary")
 __C.SAVE_METRIC = os.path.join(__C.SAVE_PATH, "Metric")
 
-if not os.path.exists(__C.SAVE_MODEL):
-    os.makedirs(__C.SAVE_MODEL)
-if not os.path.exists(__C.SAVE_VALID):
-    os.makedirs(__C.SAVE_VALID)
+# if not os.path.exists(__C.SAVE_MODEL):
+#     os.makedirs(__C.SAVE_MODEL)
+# if not os.path.exists(__C.SAVE_VALID):
+#     os.makedirs(__C.SAVE_VALID)
 
 __C.RAINY_TRAIN = ['201501010000', '201801010000']
 __C.RAINY_VALID = ['201801010000', '201809180000']

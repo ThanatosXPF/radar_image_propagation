@@ -196,8 +196,8 @@ def test(para, iter, mode="Test"):
 
 
 if __name__ == '__main__':
-    config_log()
-    cfg_from_file("/extend/gru_tf_data/0606_ebgan/cfg0.yml")
+    # config_log()
+    # cfg_from_file("/extend/gru_tf_data/0606_ebgan/cfg0.yml")
     # paras = ("first_try", "94999")
     # paras = '/extend/gru_tf_data/0512_ebtest/Save/model.ckpt-49999'
     paras = None

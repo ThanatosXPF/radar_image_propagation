@@ -6,7 +6,7 @@ from os import makedirs
 plt.switch_backend('agg')
 
 from config import c
-from utils import denormalize_frames, normalize_frames
+# from utils import denormalize_frames, normalize_frames
 
 
 def pixel_to_dBZ(img):
@@ -79,8 +79,7 @@ def rainfall_to_pixel(rainfall_intensity, a=None, b=None):
         b = c.ZR_b
     dBR = np.log10(rainfall_intensity) * 10.0
     dBZ = dBR * b + 10.0 * np.log10(a)
-    pixel_vals = (dBZ + 10.0) / 70.0
-    return pixel_vals
+    return dBZ
 
 def get_loss_weight_symbol(data):
     if c.USE_BALANCED_LOSS:
@@ -293,17 +292,19 @@ class Evaluator(object):
 
 
 if __name__ == '__main__':
-    from cv2 import imread
-    e = Evaluator(100)
-    gt = np.zeros((1, 10, 900, 900, 1))
-    pred = np.zeros((1, 10, 900, 900, 1))
-    for i in range(1, 11):
-        gt[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319222400/out/{i}.png', 0)
-        pred[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319222400/pred/{i}.png', 0)
-
-    e.evaluate(gt, pred)
-    for i in range(1, 11):
-        gt[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319232400/out/{i}.png', 0)
-        pred[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319232400/pred/{i}.png', 0)
-    e.evaluate(gt, pred)
-    e.done()
+    # from cv2 import imread
+    # e = Evaluator(100)
+    # gt = np.zeros((1, 10, 900, 900, 1))
+    # pred = np.zeros((1, 10, 900, 900, 1))
+    # for i in range(1, 11):
+    #     gt[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319222400/out/{i}.png', 0)
+    #     pred[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319222400/pred/{i}.png', 0)
+    #
+    # e.evaluate(gt, pred)
+    # for i in range(1, 11):
+    #     gt[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319232400/out/{i}.png', 0)
+    #     pred[:, i-1, :,:,0] = imread(f'/extend/results/gru_tf/3_99999_h/20180319232400/pred/{i}.png', 0)
+    # e.evaluate(gt, pred)
+    # e.done()
+    for i in [0.5, 5, 10, 30]:
+        print(rainfall_to_pixel(i))
