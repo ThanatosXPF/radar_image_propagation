@@ -11,6 +11,8 @@ from utils import normalize_frames, config_log, save_png
 from evaluation import Evaluator
 from config import c, cfg_from_file
 
+os.environ['CUDA_VISIBLE_DEVICES']='4,5,6,7'
+
 
 class AVGRunner:
     def __init__(self, restore_path, mode="train"):
@@ -196,8 +198,8 @@ def test(para, iter, mode="Test"):
 
 
 if __name__ == '__main__':
-    # config_log()
-    # cfg_from_file("/extend/gru_tf_data/0606_ebgan/cfg0.yml")
+    config_log()
+    cfg_from_file("/extend/gru_tf_data/0727_ebgan/cfg0.yml")
     # paras = ("first_try", "94999")
     # paras = '/extend/gru_tf_data/0512_ebtest/Save/model.ckpt-49999'
     paras = None
