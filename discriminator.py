@@ -29,7 +29,7 @@ class Discriminator:
         self.define_graph()
 
     def define_graph(self):
-        with tf.name_scope("Discriminator") and tf.device("/device:GPU:1"):
+        with tf.name_scope("Discriminator") and tf.device("/device:GPU:0"):
             with tf.name_scope("graph"):
                 self.pred_data = tf.placeholder(self._dtype, (self._batch, self._out_seq, self._h, self._w, 1))
                 self.real_data = tf.placeholder(self._dtype, (self._batch, self._out_seq, self._h, self._w, 1))
@@ -61,7 +61,7 @@ class Discriminator:
                                                                    name="discriminator_op")
     def encoder_decoder(self, data, reuse=None):
         with tf.variable_scope("Graph", reuse=tf.AUTO_REUSE):
-            with tf.device('/device:GPU:0'):
+            with tf.device('/device:GPU:1'):
                 encoder_net = Encoder(self._batch,
                                       self._in_seq,
                                       gru_filter=c.ENCODER_GRU_FILTER,
@@ -75,7 +75,7 @@ class Discriminator:
                 for i in range(self._out_seq):
                     encoder_net.rnn_encoder(data[:, i, ...])
             states = encoder_net.rnn_states
-            with tf.device('/device:GPU:1'):
+            with tf.device('/device:GPU:2'):
                 forecaster_net = Forecaster(self._batch,
                                             self._out_seq,
                                             gru_filter=c.DECODER_GRU_FILTER,

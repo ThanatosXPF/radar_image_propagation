@@ -84,7 +84,7 @@ class Generator(object):
                     forecaster_net.rnn_forecaster()
             pred = tf.concat(forecaster_net.pred, axis=1)
 
-            with tf.variable_scope("loss"):
+            with tf.variable_scope("loss") and tf.device('/device:GPU3'):
                 gt = self.gt_data
                 weights = get_loss_weight_symbol(pred)
 
