@@ -45,7 +45,7 @@ class ConvGRUCell(object):
                                    dtype=self._dtype)
         self._bi = tf.get_variable(name=self._name+"_bi",
                                    shape=(self._num_filter*3),
-                                   initializer=xavier_initializer(uniform=False),
+                                   initializer=tf.zeros_initializer,
                                    dtype=self._dtype)
 
         self._Wh = tf.get_variable(name=self._name+"_Wh",
@@ -55,7 +55,7 @@ class ConvGRUCell(object):
                                    dtype=self._dtype)
         self._bh = tf.get_variable(name=self._name+"_bh",
                                    shape=(self._num_filter*3),
-                                   initializer=xavier_initializer(uniform=False),
+                                   initializer=tf.zeros_initializer,
                                    dtype=self._dtype)
 
     def __call__(self, inputs, state):
@@ -78,7 +78,7 @@ class ConvGRUCell(object):
                                padding="SAME",
                                name=self._name+"_conv1")
             i2h = tf.nn.bias_add(i2h, self._bi)
-            i2h = tf.nn.relu(i2h)
+            # i2h = tf.nn.relu(i2h)
             i2h = tf.split(i2h, 3, axis=3)
         else:
             i2h = None
@@ -89,7 +89,7 @@ class ConvGRUCell(object):
                            padding="SAME",
                            name=self._name+"_conv2")
         h2h = tf.nn.bias_add(h2h, self._bh)
-        h2h = tf.nn.relu(h2h)
+        # h2h = tf.nn.relu(h2h)
         h2h = tf.split(h2h, 3, axis=3)
 
         if i2h is not None:

@@ -8,16 +8,16 @@ from config import c
 
 def config_log():
     logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s %(levelname)s \n %(message)s',
-                        datefmt='%a, %d %b %Y %H:%M:%S',
+                        format='%(asctime)s \n %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
                         filename=os.path.join(c.SAVE_PATH, "train.log"),
                         filemode='w')
 
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s  %(levelname)-8s %(message)s')
-    console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
+    # console = logging.StreamHandler()
+    # console.setLevel(logging.INFO)
+    # formatter = logging.Formatter('%(asctime)s  %(levelname)-8s %(message)s')
+    # console.setFormatter(formatter)
+    # logging.getLogger('').addHandler(console)
 
 
 def normalize_frames(frames):
@@ -52,6 +52,23 @@ def denormalize_frames(frames):
     new_frames = new_frames.astype(np.uint8)
 
     return new_frames
+
+
+def crop_img(img):
+    """
+    crop tensor
+    :param img: (B, T, H, W, C) 
+    :return: img (B, T, t_H, t_W, C)
+    """
+    assert len(img.shape) == 5
+    t_H = c.PREDICTION_H
+    t_W = c.PREDICTION_W
+    *_, H, W, C = img.shape
+    if t_H != H or t_W != W:
+        side_h = (H - t_H) // 2
+        side_w = (W - t_W) // 2
+        img = img[:, :, side_h:-side_h, side_w:-side_w, :]
+    return img
 
 
 

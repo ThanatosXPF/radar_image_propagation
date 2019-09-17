@@ -1,12 +1,13 @@
+from os import makedirs
+from os.path import join, exists
+
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
-from os.path import join, exists
-from os import makedirs
+
 plt.switch_backend('agg')
 
 from config import c
-from utils import denormalize_frames, normalize_frames
 
 
 def pixel_to_dBZ(img):
@@ -125,7 +126,7 @@ def weighted_l2(pred, gt, weight):
 
 def weighted_l1(pred, gt, weight):
     l1 = weight * tf.abs(pred - gt)
-    l1 = tf.reduce_sum(l1)
+    l1 = tf.reduce_mean(l1)
     return l1
 
 
@@ -178,14 +179,17 @@ def gdl_loss(pred, gt):
 
 class Evaluator(object):
     def __init__(self, step, length=c.OUT_SEQ, mode="train"):
+        seq = length
         self.metric = {}
         for threshold in c.EVALUATION_THRESHOLDS:
             self.metric[threshold] = {
-                "pod": np.zeros((length, 1), np.float32),
-                "far": np.zeros((length, 1), np.float32),
-                "csi": np.zeros((length, 1), np.float32),
-                "hss": np.zeros((length, 1), np.float32)
+                "a": np.zeros((seq, 1), np.float32),
+                "b": np.zeros((seq, 1), np.float32),
+                "c": np.zeros((seq, 1), np.float32),
+                "d": np.zeros((seq, 1), np.float32)
             }
+        self.threshold = c.EVALUATION_THRESHOLDS
+        self.seq = seq
         self.step = step
         self.total = 0
         self.mode = mode
@@ -205,9 +209,37 @@ class Evaluator(object):
         correct_negatives = np.logical_and(b_pred_n, b_gt_n).sum(axis=summation_axis)
 
         a = hits
-        b = false_alarms
-        c = misses
+        b = misses
+        c = false_alarms
         d = correct_negatives
+
+        return a, b, c, d
+
+    def check(self, data, a, b, c, d):
+        nans = np.argwhere(np.isnan(data))
+        infs = np.argwhere(np.isnan(data))
+        if len(nans) != 0 or len(infs) != 0:
+            print("fuck!")
+            # print(data.reshape(1, -1))
+            # print("hits", a, "far", b, "misses", c, "TF", d)
+            return True
+        return False
+
+    def evaluate(self, gt, pred):
+        self.total += 1
+        for threshold in self.threshold:
+            a, b, c, d = self.get_metrics(gt, pred, threshold)
+            self.metric[threshold]["a"] += a
+            self.metric[threshold]["b"] += b
+            self.metric[threshold]["c"] += c
+            self.metric[threshold]["d"] += d
+
+    def cal_state(self, threshold):
+        hits = self.metric[threshold]
+        a = hits['a']
+        b = hits['b']
+        c = hits['c']
+        d = hits['d']
 
         pod = a / (a + c)
         far = b / (a + b)
@@ -216,23 +248,10 @@ class Evaluator(object):
         aref = (a + b) / n * (a + c)
         gss = (a - aref) / (a + b + c - aref)
         hss = 2 * gss / (gss + 1)
-        pod[pod == np.inf] = 0
-        pod = np.nan_to_num(pod)
-        far[far == np.inf] = 0
-        far = np.nan_to_num(far)
         return pod, far, csi, hss
 
-    def evaluate(self, gt, pred):
-        self.total += 1
-        for threshold in c.EVALUATION_THRESHOLDS:
-            pod, far, csi, hss = self.get_metrics(gt, pred, threshold)
-            self.metric[threshold]["pod"] += pod
-            self.metric[threshold]["far"] += far
-            self.metric[threshold]["csi"] += csi
-            self.metric[threshold]["hss"] += hss
-
     def done(self):
-        thresholds = c.EVALUATION_THRESHOLDS
+        thresholds = self.threshold
         pods = []
         fars = []
         csis = []
@@ -242,14 +261,10 @@ class Evaluator(object):
             makedirs(save_path)
         # draw line chart
         for threshold in thresholds:
-            metrics = self.metric[threshold]
-            pod = metrics["pod"].reshape(-1) / self.total
+            pod, far, csi, hss = self.cal_state(threshold)
             pods.append(np.average(pod))
-            far = metrics["far"].reshape(-1) / self.total
             fars.append(np.average(far))
-            csi = metrics["csi"].reshape(-1) / self.total
             csis.append(np.average(csi))
-            hss = metrics["hss"].reshape(-1) / self.total
             hsss.append(np.average(hss))
 
             x = list(range(len(pod)))
@@ -258,16 +273,16 @@ class Evaluator(object):
             plt.plot(x, csi, "b--", label="csi")
             plt.plot(x, hss, "k--", label="hss")
             for a, p, f, cs, h in zip(x, pod, far, csi, hss):
-                plt.text(a, p+0.005, "%.2f"%p, ha='center', va='bottom', fontsize=7)
-                plt.text(a, f+0.005, "%.2f"%f, ha='center', va='bottom', fontsize=7)
-                plt.text(a, cs+0.005, "%.2f"%cs, ha='center', va='bottom', fontsize=7)
-                plt.text(a, h+0.005, "%.2f"%h, ha='center', va='bottom', fontsize=7)
+                plt.text(a, p + 0.005, "%.2f" % p, ha='center', va='bottom', fontsize=7)
+                plt.text(a, f + 0.005, "%.2f" % f, ha='center', va='bottom', fontsize=7)
+                plt.text(a, cs + 0.005, "%.2f" % cs, ha='center', va='bottom', fontsize=7)
+                plt.text(a, h + 0.005, "%.2f" % h, ha='center', va='bottom', fontsize=7)
 
             plt.title(f"Threshold {threshold}")
             plt.xlabel("Time step")
             plt.ylabel("Rate")
             plt.legend()
-            plt.gcf().set_size_inches(9.6, 4.8)
+            plt.gcf().set_size_inches(4.8 + (4.8 * self.seq // 10), 4.8)
             plt.savefig(join(save_path, f"{threshold}.jpg"))
             plt.clf()
         # draw bar chart
@@ -275,14 +290,14 @@ class Evaluator(object):
         total_width, n = 0.8, 4
         width = total_width / n
         plt.bar(x, pods, width=width, label='pod', fc='r')
-        plt.bar(x+0.2, fars, width=width, label='far', fc='g', tick_label=thresholds)
-        plt.bar(x+0.4, csis, width=width, label='csi', fc='b')
-        plt.bar(x+0.6, hsss, width=width, label='hss', fc='k')
+        plt.bar(x + 0.2, fars, width=width, label='far', fc='g', tick_label=thresholds)
+        plt.bar(x + 0.4, csis, width=width, label='csi', fc='b')
+        plt.bar(x + 0.6, hsss, width=width, label='hss', fc='k')
         for a, p, f, cs, h in zip(x, pods, fars, csis, hsss):
             plt.text(a, p + 0.005, "%.2f" % p, ha='center', va='bottom', fontsize=7)
-            plt.text(a+0.2, f + 0.005, "%.2f" % f, ha='center', va='bottom', fontsize=7)
-            plt.text(a+0.4, cs + 0.005, "%.2f" % cs, ha='center', va='bottom', fontsize=7)
-            plt.text(a+0.6, h + 0.005, "%.2f" % h, ha='center', va='bottom', fontsize=7)
+            plt.text(a + 0.2, f + 0.005, "%.2f" % f, ha='center', va='bottom', fontsize=7)
+            plt.text(a + 0.4, cs + 0.005, "%.2f" % cs, ha='center', va='bottom', fontsize=7)
+            plt.text(a + 0.6, h + 0.005, "%.2f" % h, ha='center', va='bottom', fontsize=7)
         plt.xlabel("Thresholds")
         plt.ylabel("Rate")
         plt.title(f"Average metrics in {self.step}")
@@ -290,6 +305,7 @@ class Evaluator(object):
         plt.gcf().set_size_inches(9.6, 4.8)
         plt.savefig(join(save_path, f"average_{self.step}.jpg"))
         plt.clf()
+        self.result_path = join(save_path, f"average_{self.step}.jpg")
 
 
 if __name__ == '__main__':

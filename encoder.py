@@ -1,10 +1,12 @@
 import tensorflow as tf
 from tensorflow.contrib.layers import xavier_initializer
 
-from conv_gru import ConvGRUCell
-from tf_utils import conv2d_act
-from config import config_gru_fms
+from RNN.conv_gru import ConvGRUCell
+from RNN.conv_stlstm import ConvSTLSTMCell
+from RNN.PredRNN import PredRNNCell
 from config import c
+from config import config_gru_fms
+from tf_utils import conv2d_act
 
 
 class Encoder(object):
@@ -49,14 +51,36 @@ class Encoder(object):
         """
         with tf.variable_scope("Encoder"):
             for i in range(len(self._gru_fms)):
-                self.rnn_blocks.append(ConvGRUCell(num_filter=self._gru_filter[i],
-                                                   b_h_w=(self._batch,
-                                                          self._gru_fms[i],
-                                                          self._gru_fms[i]),
-                                                   h2h_kernel=self._h2h_kernel[i],
-                                                   i2h_kernel=self._i2h_kernel[i],
-                                                   name="e_cgru_" + str(i),
-                                                   chanel=self._gru_in_chanel[i]))
+                if c.RNN_CELL == "conv_gru":
+                    cell = ConvGRUCell(num_filter=self._gru_filter[i],
+                                       b_h_w=(self._batch,
+                                              self._gru_fms[i],
+                                              self._gru_fms[i]),
+                                       h2h_kernel=self._h2h_kernel[i],
+                                       i2h_kernel=self._i2h_kernel[i],
+                                       name="e_cgru_" + str(i),
+                                       chanel=self._gru_in_chanel[i])
+                elif c.RNN_CELL == "st_lstm":
+                    cell = ConvSTLSTMCell(num_filter=self._gru_filter[i],
+                                          b_h_w=(self._batch,
+                                                 self._gru_fms[i],
+                                                 self._gru_fms[i]),
+                                          kernel=self._i2h_kernel[i],
+                                          name="e_stlstm_" + str(i),
+                                          chanel=self._gru_in_chanel[i])
+                elif c.RNN_CELL == "PredRNN":
+                    cell = PredRNNCell(num_filter=self._gru_filter[i],
+                                       b_h_w=(self._batch,
+                                              self._gru_fms[i],
+                                              self._gru_fms[i]),
+                                       kernel=self._i2h_kernel[i],
+                                       name="e_stlstm_" + str(i),
+                                       chanel=self._gru_in_chanel[i],
+                                       layers=c.PRED_RNN_LAYERS)
+                else:
+                    raise NotImplementedError
+
+                self.rnn_blocks.append(cell)
 
     def init_parameters(self):
         with tf.variable_scope("Encoder", auxiliary_name_scope=False):

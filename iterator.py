@@ -1,10 +1,11 @@
-import os
-import pandas as pd
-import numpy as np
 import bisect
+import os
+
+import numpy as np
+import pandas as pd
 
 from config import c as cfg
-from image import quick_read_frames
+from utility.image import quick_read_frames
 
 
 class Iterator(object):
@@ -43,9 +44,9 @@ class Iterator(object):
         assert isinstance(time_interval, list)
         self.time_interval = time_interval
         if width is None:
-            width = cfg.PREDICTION_W
+            width = cfg.W
         if height is None:
-            height = cfg.PREDICTION_H
+            height = cfg.H
 
         self._df = self._df_generate()
         print("df size {}".format(self._df.size))

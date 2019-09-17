@@ -1,9 +1,11 @@
-import os
-import yaml
 import logging
-import numpy as np
+import os
 from collections import OrderedDict
-from ordered_easydict import OrderedEasyDict as edict
+
+import numpy as np
+import yaml
+
+from utility.ordered_easydict import OrderedEasyDict as edict
 
 
 def config_gru_fms(height, strides):
@@ -65,7 +67,8 @@ __C.W = 480
 
 __C.BATCH_SIZE = 2
 __C.IN_CHANEL = 1
-
+__C.RNN_CELL = "conv_gru"     # conv_gru st_lstm PredRNN
+__C.PRED_RNN_LAYERS = 4
 # encoder
 # (kernel, kernel, in chanel, out chanel)
 
@@ -101,7 +104,7 @@ __C.H2H_KERNEL = [5, 5, 3]
 __C.ZR_a = 58.53
 __C.ZR_b = 1.56
 
-__C.EVALUATION_THRESHOLDS = (0, 5, 10, 30)
+__C.EVALUATION_THRESHOLDS = (12.9777173087837, 28.577717308783704, 33.27378524114181, 40.71687681476854)
 
 __C.USE_BALANCED_LOSS = False
 __C.THRESHOLDS = [0.5, 2, 5, 10, 30]

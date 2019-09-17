@@ -19,13 +19,12 @@ class Generator(object):
 
         if mode == "train":
             self._out_seq = c.OUT_SEQ
-            self._h = c.H
-            self._w = c.W
         else:
             # self._batch = 1
             self._out_seq = c.PREDICT_LENGTH
-            self._h = c.PREDICTION_H
-            self._w = c.PREDICTION_W
+
+        self._h = c.PREDICTION_H
+        self._w = c.PREDICTION_W
 
         self._in_seq = c.IN_SEQ
         # self._h = c.H
@@ -112,6 +111,7 @@ class Generator(object):
                     #        + c.ADV_LAMBDA * self.d_loss
                 else:
                     self.loss = c.L1_LAMBDA * self.mae + c.L2_LAMBDA * self.mse + c.GDL_LAMBDA * self.gdl
+                    self.d_loss = self.loss
 
                 self.optimizer = tf.train.AdamOptimizer(c.LR).minimize(self.loss, global_step=self.global_step)
 

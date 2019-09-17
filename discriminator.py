@@ -15,8 +15,8 @@ class Discriminator:
         self._out_seq = c.OUT_SEQ
         self._in_seq = c.IN_SEQ
 
-        self._h = c.H
-        self._w = c.W
+        self._h = c.PREDICTION_H
+        self._w = c.PREDICTION_W
 
         self.pred_data = None
         self.real_data = None

@@ -1,14 +1,14 @@
 import logging
 import os
+
 import numpy as np
 
-from model import Model
-from iterator import Iterator
 from clip_iterator import Clip_Iterator
 from config import c, cfg_from_file
-from utils import config_log, save_png
-from utils import normalize_frames
 from evaluation import Evaluator
+from iterator import Iterator
+from model import Model
+from utils import config_log, save_png, normalize_frames
 
 
 class Runner(object):
