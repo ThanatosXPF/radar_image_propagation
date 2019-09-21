@@ -16,6 +16,7 @@ from utils import normalize_frames, config_log, save_png, crop_img
 flags = tf.flags
 flags.DEFINE_string('device', '0,1', '显卡')
 flags.DEFINE_string('config', '', '配置文件')
+flags.DEFINE_string('restore', None, '参数')
 
 
 class AVGRunner:
@@ -208,14 +209,15 @@ if __name__ == '__main__':
     FLAGS = tf.flags.FLAGS
     device = FLAGS.device
     config = FLAGS.config
+    paras = FLAGS.restore
     os.environ['CUDA_VISIBLE_DEVICES'] = device
     config_log()
     logging.getLogger().setLevel(logging.INFO)
     cfg_from_file(config)
     print(c.SAVE_PATH)
+    print(device, config, paras)
     # paras = ("first_try", "94999")
     # paras = '/extend/gru_tf_data/0512_ebtest/Save/model.ckpt-49999'
-    paras = None
     runner = AVGRunner(paras)
     try:
         runner.train()

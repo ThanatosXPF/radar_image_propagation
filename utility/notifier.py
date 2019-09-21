@@ -23,6 +23,8 @@ class Notifier(object):
         # 邮件接受方邮箱地址，注意需要[]包裹，这意味着你可以写多个邮件地址群发
         self.receivers = ['thanatosxie@163.com']
         self.smtpObj = smtplib.SMTP()
+
+    def login(self):
         # 连接到服务器
         print("smtp connection")
         self.smtpObj.connect(self.mail_host, 25)
@@ -31,12 +33,12 @@ class Notifier(object):
         self.smtpObj.login(self.mail_user, self.mail_pass)
         print("smtp config complete")
 
-
-    def __del__(self):
+    def close(self):
         self.smtpObj.quit()
         print("smtp connection closed")
 
     def send(self, content):
+        self.login()
         # 设置email信息
         # 邮件内容设置
         content += "\n" + "config file path: "+c.SAVE_PATH
@@ -56,16 +58,18 @@ class Notifier(object):
             print('success')
         except smtplib.SMTPException as e:
             print('error', e)  # 打印错误
+        self.close()
 
     def eval(self, step, img_path):
+        self.login()
         # 邮件内容设置
         message = MIMEMultipart()
         # 邮件主题
-        message['Subject'] = self.hostname
+        message['Subject'] = self.hostname + f" in {step}"
         # 发送方信息
-        message['From'] = self.sender
+        message['From'] = self.hostname + f"<{self.sender}>"
         # 接受方信息
-        message['To'] = self.receivers[0]
+        message['To'] = "thanatos" + f"<{self.receivers[0]}>"
         content = self.hostname + "<br>config file path: " + c.SAVE_PATH + f"<br>iter{step}<br>"
         content = '<html><body><p>' + content + '</p>' +'<p><img src="cid:0"></p>' +'</body></html>'
         txt = MIMEText(content, 'html', 'utf-8')
@@ -100,10 +104,9 @@ class Notifier(object):
             print('error', e)  # 打印错误
 
         message.attach(MIMEText(content, 'plain', 'utf-8'))
-
-        # 添加附件就是加上一个MIMEBase，从本地读取一个图片:
+        self.close()
 
 
 if __name__ == '__main__':
     no = Notifier()
-    no.eval(123)
+    no.eval(14999, '/extend/gru_tf_data/0916_ensemble/Metric/Valid_14999/average_14999.jpg')
