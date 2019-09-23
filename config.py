@@ -1,4 +1,3 @@
-import logging
 import os
 from collections import OrderedDict
 
@@ -78,6 +77,7 @@ __C.CONV_KERNEL = ((7, 7, __C.IN_CHANEL, 8),
 __C.CONV_STRIDE = (5, 3, 2)
 __C.ENCODER_GRU_FILTER = (64, 192, 192)
 __C.ENCODER_GRU_INCHANEL = (8, 192, 192)
+__C.DOWN_SAMPLE_TYPE = "conv"  # conv incept
 # decoder
 # (kernel, kernel, out chanel, in chanel)
 __C.DECONV_KERNEL = ((7, 7, 8, 64),
@@ -86,7 +86,7 @@ __C.DECONV_KERNEL = ((7, 7, 8, 64),
 __C.DECONV_STRIDE = (5, 3, 2)
 __C.DECODER_GRU_FILTER = (64, 192, 192)
 __C.DECODER_GRU_INCHANEL = (64, 192, 192)
-
+__C.UP_SAMPLE_TYPE = "deconv"  # deconv incept
 # Encoder Forecaster
 __C.IN_SEQ = 5
 __C.OUT_SEQ = 10
@@ -198,7 +198,7 @@ def save_cfg(dir_path, source=__C):
         cfg_count += 1
         file_path = os.path.join(dir_path, 'cfg%d.yml' % cfg_count)
     with open(file_path, 'w') as f:
-        logging.info("Save YAML config file to %s" %file_path)
+        print("Save YAML config file to %s" %file_path)
         ordered_dump(source, f, yaml.SafeDumper, default_flow_style=None)
 
 
@@ -212,5 +212,5 @@ def load_config(file_name):
 
 
 if __name__ == '__main__':
-    # cfg_from_file("/extend/gru_tf_data/0411_test/cfg0.yml")
-    save_cfg("/extend/gru_tf_data/0512_ebgan")
+    cfg_from_file("/extend/gru_tf_data/0923_inception/cfg0.yml")
+    save_cfg("/extend/gru_tf_data/0923_inception")

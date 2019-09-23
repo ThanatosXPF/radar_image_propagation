@@ -1,8 +1,6 @@
 import tensorflow as tf
 from tensorflow.contrib.layers import xavier_initializer
 
-from config import c
-
 
 class ConvSTLSTMCell(object):
     def __init__(self, num_filter, b_h_w,
@@ -189,7 +187,7 @@ class ConvSTLSTMCell(object):
         outputs:
         """
         if begin_state is None:
-            states = [self.zero_state()]*3
+            states = self.zero_state()
         else:
             states = begin_state
 
@@ -201,17 +199,10 @@ class ConvSTLSTMCell(object):
                 output, states = self(inputs[i], state=states)
                 outputs.append(output)
         else:
-            if c.SEQUENCE_MODE:
-                inputs = None
-                for i in range(length):
-                    output, states = self(inputs, state=states)
-                    inputs = output
-                    outputs.append(output)
-            else:
-                inputs = [None] * length
-                for i in range(length):
-                    output, states = self(inputs[i], state=states)
-                    outputs.append(output)
+            inputs = [None] * length
+            for i in range(length):
+                output, states = self(inputs[i], state=states)
+                outputs.append(output)
 
         if merge:
             outputs = tf.stack(outputs, axis=1)

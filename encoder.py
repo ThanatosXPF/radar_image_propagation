@@ -84,13 +84,32 @@ class Encoder(object):
 
     def init_parameters(self):
         with tf.variable_scope("Encoder", auxiliary_name_scope=False):
-            for i in range(len(self._conv_fms)):
-                self.conv_kernels.append(tf.get_variable(name=f"Conv{i}_W",
-                                                         shape=self._conv_fms[i],
-                                                         initializer=xavier_initializer(uniform=False),
-                                                         dtype=self._dtype))
-                self.conv_bias.append(tf.get_variable(name=f"Conv{i}_b",
-                                                      shape=[self._conv_fms[i][-1]]))
+            if c.DOWN_SAMPLE_TYPE == "conv":
+                for i in range(len(self._conv_fms)):
+                    self.conv_kernels.append(tf.get_variable(name=f"Conv{i}_W",
+                                                             shape=self._conv_fms[i],
+                                                             initializer=xavier_initializer(uniform=False),
+                                                             dtype=self._dtype))
+                    self.conv_bias.append(tf.get_variable(name=f"Conv{i}_b",
+                                                          shape=[self._conv_fms[i][-1]],
+                                                          initializer=tf.zeros_initializer))
+            elif c.DOWN_SAMPLE_TYPE == "inception":
+                for i in range(len(self._conv_fms)):
+                    conv_kernels = []
+                    biases = []
+                    for j in range(len(self._conv_fms[i])):
+                        kernel = self._conv_fms[i][j]
+                        conv_kernels.append(tf.get_variable(name=f"Conv{i}_W{j}",
+                                                            shape=kernel,
+                                                            initializer=xavier_initializer(uniform=False),
+                                                            dtype=self._dtype))
+                        biases.append(tf.get_variable(name=f"Conv{i}_b{j}",
+                                                      shape=kernel[-1],
+                                                      initializer=tf.zeros_initializer))
+                    self.conv_kernels.append(conv_kernels)
+                    self.conv_bias.append(biases)
+            else:
+                raise NotImplementedError
 
     def init_rnn_states(self):
         for block in self.rnn_blocks:
@@ -105,7 +124,7 @@ class Encoder(object):
                                   bias=self.conv_bias[i],
                                   strides=self.conv_stride[i])
 
-                output, states = self.rnn_blocks[i](inputs=conv,
-                                                    state=self.rnn_states[i])
+                output, states = self.rnn_blocks[i].unroll(inputs=conv,
+                                                           length=self._seq)
                 self.rnn_states[i] = states
                 in_data = output

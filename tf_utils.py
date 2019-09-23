@@ -4,22 +4,6 @@ import tensorflow as tf
 from config import c
 
 
-def conv2d(input, name, kshape, strides=(1, 1, 1, 1), dtype=np.float32, padding="SAME"):
-    with tf.name_scope(name):
-        W = tf.get_variable(name='w_'+name,
-                            shape=kshape,
-                            initializer=tf.contrib.layers.xavier_initializer(uniform=False),
-                            dtype=dtype)
-        b = tf.get_variable(name='b_' + name,
-                            shape=[kshape[3]],
-                            initializer=tf.contrib.layers.xavier_initializer(uniform=False),
-                            dtype=dtype)
-        out = tf.nn.conv2d(input, W, strides=strides, padding=padding)
-        out = tf.nn.bias_add(out, b)
-        out = tf.nn.leaky_relu(out, alpha=0.2)
-        return out
-
-
 def conv2d_act(input, name, kernel, bias, strides, act_type="leaky", padding="SAME"):
     """
     :param input:
@@ -38,15 +22,14 @@ def conv2d_act(input, name, kernel, bias, strides, act_type="leaky", padding="SA
                                              input_size[2],
                                              input_size[3],
                                              input_size[4]))
-
-        out = tf.nn.conv2d(input, kernel, strides=(1, strides, strides, 1),
-                           padding=padding, name=name)
-        out = tf.nn.bias_add(out, bias)
-        if act_type == "relu":
-            out = tf.nn.relu(out)
-        elif act_type == "leaky":
-            out = tf.nn.leaky_relu(out, alpha=0.2)
-
+        if c.DOWN_SAMPLE_TYPE == "conv":
+            out = conv2d(input=input, kernel=kernel, bias=bias, strides=(1, strides, strides, 1),
+                         act_type=act_type, padding=padding)
+        elif c.DOWN_SAMPLE_TYPE == "inception":
+            out = inception_conv_2d(input=input, kernels=kernel, biases=bias, strides=(1, strides, strides, 1),
+                         act_type=act_type, padding=padding)
+        else:
+            raise NotImplementedError
         if len(input_size) == 5:
             out_size = out.shape.as_list()
             out = tf.reshape(out, shape=(input_size[0],
@@ -55,6 +38,25 @@ def conv2d_act(input, name, kernel, bias, strides, act_type="leaky", padding="SA
                                          out_size[-2],
                                          out_size[-1]))
         return out
+
+
+def conv2d(input, kernel, bias, strides, act_type="leaky", padding="SAME"):
+    out = tf.nn.conv2d(input, kernel, strides=strides, padding=padding)
+    out = tf.nn.bias_add(out, bias)
+    if act_type == "relu":
+        out = tf.nn.relu(out)
+    elif act_type == "leaky":
+        out = tf.nn.leaky_relu(out, alpha=0.2)
+    return out
+
+
+def inception_conv_2d(input, kernels, biases, strides, act_type="leaky", padding="SAME"):
+    result = []
+    for kernel, bias in zip(kernels, biases):
+        out = conv2d(input, kernel, bias, strides, act_type, padding)
+        result.append(out)
+    result = tf.concat(result, axis=-1)
+    return result
 
 
 def deconv2d_act(input, name, kernel, bias, infer_shape, strides, act_type="leaky", padding="SAME"):
@@ -65,12 +67,15 @@ def deconv2d_act(input, name, kernel, bias, infer_shape, strides, act_type="leak
                                              input_size[2],
                                              input_size[3],
                                              input_size[4]))
-        out = tf.nn.conv2d_transpose(input, kernel, infer_shape, strides=(1, strides, strides, 1), name=name, padding=padding)
-        out = tf.nn.bias_add(out, bias)
-        if act_type == "relu":
-            out = tf.nn.relu(out)
-        elif act_type == "leaky":
-            out = tf.nn.leaky_relu(out, alpha=0.2)
+
+        if c.UP_SAMPLE_TYPE == "deconv":
+            out = deconv2d(input=input, kernel=kernel, bias=bias, infer_shape=infer_shape,
+                           strides=(1, strides, strides, 1), padding=padding, act_type=act_type)
+        elif c.UP_SAMPLE_TYPE == "inception":
+            out = inception_deconv_2d(input=input, kernels=kernel, biases=bias, infer_shapes=infer_shape,
+                           strides=(1, strides, strides, 1), padding=padding, act_type=act_type)
+        else:
+            raise NotImplementedError
         if len(input_size) == 5:
             out_size = out.shape.as_list()
             out = tf.reshape(out, shape=(input_size[0],
@@ -80,23 +85,28 @@ def deconv2d_act(input, name, kernel, bias, infer_shape, strides, act_type="leak
                                          out_size[-1]))
         return out
 
-def deconv2d(input, name, kshape, n_outputs, strides=(1, 1)):
-    with tf.name_scope(name):
-        out = tf.contrib.layers.conv2d_transpose(input,
-                                                 num_outputs= n_outputs,
-                                                 kernel_size=kshape,
-                                                 stride=strides,
-                                                 padding='SAME',
-                                                 weights_initializer=tf.contrib.layers.xavier_initializer_conv2d(uniform=False),
-                                                 biases_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
-                                                 activation_fn=tf.nn.relu)
-        return out
+
+def deconv2d(input, kernel, bias, infer_shape, strides, padding, act_type):
+    out = tf.nn.conv2d_transpose(input, kernel, infer_shape, strides=strides,
+                                 padding=padding)
+    out = tf.nn.bias_add(out, bias)
+    if act_type == "relu":
+        out = tf.nn.relu(out)
+    elif act_type == "leaky":
+        out = tf.nn.leaky_relu(out, alpha=0.2)
+    return out
 
 
+def inception_deconv_2d(input, kernels, biases, infer_shapes, strides, act_type="leaky", padding="SAME"):
+    result = []
+    for kernel, bias, infer_shape in zip(kernels, biases, infer_shapes):
+        out = deconv2d(input, kernel, bias, infer_shape, strides, padding, act_type)
+        result.append(out)
+    result = tf.concat(result, axis=-1)
+    return result
 
 
-
-def maxpool2d(x,name,kshape=(1, 2, 2, 1), strides=(1, 2, 2, 1)):
+def downsample(x, name, kshape=(1, 2, 2, 1), strides=(1, 2, 2, 1)):
     with tf.name_scope(name):
         out = tf.nn.max_pool(x,
                              ksize=kshape, #size of window
@@ -106,7 +116,7 @@ def maxpool2d(x,name,kshape=(1, 2, 2, 1), strides=(1, 2, 2, 1)):
 
 
 def upsample(input, name, factor=(2, 2)):
-    size = [int(input.shape[1] * factor[0]), int(input.shape[2] * factor[1])]
+    size = [int(input.shape[-3] * factor[0]), int(input.shape[-2] * factor[1])]
     with tf.name_scope(name):
         out = tf.image.resize_bilinear(input, size=size, align_corners=None, name=None)
         return out
@@ -152,51 +162,6 @@ def get_loss_weight_symbol(data):
     return weights
 
 
-def down_sampling(input, kshape, stride, num_filters, name, padding="SAME"):
-    input_size = input.shape.as_list()
-    if len(input_size) == 5:
-        input = tf.reshape(input, shape=(input_size[0]*input_size[1],
-                                         input_size[2],
-                                         input_size[3],
-                                         input_size[4]))
-    out = conv2d_act(input,
-                    kernel=kshape,
-                    strides=stride,
-                    num_filters=num_filters,
-                    padding=padding,
-                    name=name)
-    if len(input_size) == 5:
-        out_size = out.shape.as_list()
-        out = tf.reshape(out, shape=(input_size[0],
-                                     input_size[1],
-                                     out_size[-3],
-                                     out_size[-2],
-                                     out_size[-1]))
-    return out
-
-
-def up_sampling(input, kshape, stride, num_filter, name):
-
-    input_size = input.shape.as_list()
-    if len(input_size) == 5:
-        input = tf.reshape(input, shape=(input_size[0] * input_size[1],
-                                         input_size[2],
-                                         input_size[3],
-                                         input_size[4]))
-    out = deconv2d_act(input,
-                        kernel=kshape,
-                        stride=stride,
-                        num_filters=num_filter,
-                        name=name)
-
-    if len(input_size) == 5:
-        out_size = out.shape.as_list()
-        out = tf.reshape(out, shape=(input_size[0],
-                                     input_size[1],
-                                     out_size[-3],
-                                     out_size[-2],
-                                     out_size[-1]))
-    return out
 
 
 if __name__ == '__main__':

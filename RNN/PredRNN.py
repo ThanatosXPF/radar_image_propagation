@@ -1,8 +1,5 @@
 import tensorflow as tf
-from tensorflow.contrib.layers import xavier_initializer
 from RNN.conv_stlstm import ConvSTLSTMCell
-
-from config import c
 
 
 class PredRNNCell(object):
@@ -69,7 +66,7 @@ class PredRNNCell(object):
         outputs:
         """
         if begin_state is None:
-            states = [self.zero_state()]*3
+            states = self.zero_state()
         else:
             states = begin_state
 
@@ -81,17 +78,10 @@ class PredRNNCell(object):
                 output, states = self(inputs[i], state=states)
                 outputs.append(output)
         else:
-            if c.SEQUENCE_MODE:
-                inputs = None
-                for i in range(length):
-                    output, states = self(inputs, state=states)
-                    inputs = output
-                    outputs.append(output)
-            else:
-                inputs = [None] * length
-                for i in range(length):
-                    output, states = self(inputs[i], state=states)
-                    outputs.append(output)
+            inputs = [None] * length
+            for i in range(length):
+                output, states = self(inputs[i], state=states)
+                outputs.append(output)
 
         if merge:
             outputs = tf.stack(outputs, axis=1)

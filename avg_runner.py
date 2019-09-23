@@ -1,27 +1,31 @@
-import logging
+import datetime
 import os
+
+from config import c, cfg_from_file
 
 import numpy as np
 import tensorflow as tf
 
 from clip_iterator import Clip_Iterator
-from config import c, cfg_from_file
 from discriminator import Discriminator
 from evaluation import Evaluator
 from generator import Generator
 from iterator import Iterator
 from utility.notifier import Notifier
-from utils import normalize_frames, config_log, save_png, crop_img
+from utility.simplified_log import Logger
+from utils import normalize_frames, save_png, crop_img
 
 flags = tf.flags
 flags.DEFINE_string('device', '0,1', '显卡')
-flags.DEFINE_string('config', '', '配置文件')
+flags.DEFINE_string('config', '/extend/gru_tf_data/0916_ensemble/cfg0.yml', '配置文件')
 flags.DEFINE_string('restore', None, '参数')
 
 
 class AVGRunner:
     def __init__(self, restore_path, mode="train"):
         self.notifier = Notifier()
+        self.logger = Logger(path=c.SAVE_PATH,
+                             name=f"train{datetime.datetime.now().strftime('%Y%m%d%H%M')}.log")
         self.global_step = 0
         self.num_steps = c.MAX_ITER
 
@@ -63,7 +67,7 @@ class AVGRunner:
         if c.IN_CHANEL == 3:
             gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, :, :, :]
         elif c.IN_CHANEL == 1:
-            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, :, :,:]
+            gt_data = data[:, self._in_seq:self._in_seq + self._out_seq, :, :, :]
         else:
             raise NotImplementedError
 
@@ -76,9 +80,9 @@ class AVGRunner:
 
     def train(self):
         train_iter = Iterator(time_interval=c.RAINY_TRAIN,
-                             sample_mode="random",
-                             seq_len=self._in_seq + self._out_seq,
-                             stride=1)
+                              sample_mode="random",
+                              seq_len=self._in_seq + self._out_seq,
+                              stride=1)
         while self.global_step < c.MAX_ITER:
 
             if c.ADVERSARIAL and self.global_step > c.ADV_INVOLVE:
@@ -93,11 +97,11 @@ class AVGRunner:
 
             self.global_step = global_step
 
-            logging.info(f"Iter {self.global_step}: \n\t "
-                         f"g_loss: {g_loss:.4f} \n\t"
-                         f"mse: {mse:.4f} \n\t "
-                         f"mse_real: {gd_loss:.4f} \n\t"
-                         f"d_loss: {d_loss:.4f}")
+            self.logger.info(f"Iter {self.global_step}: \n\t "
+                             f"g_loss: {g_loss:.4f} \n\t"
+                             f"mse: {mse:.4f} \n\t "
+                             f"mse_real: {gd_loss:.4f} \n\t"
+                             f"d_loss: {d_loss:.4f}")
 
             if (self.global_step + 1) % c.SAVE_ITER == 0:
                 self.save_model()
@@ -123,10 +127,10 @@ class AVGRunner:
 
             mse, mae, gdl, pred = self.g_model.valid_step(in_data, gt_data)
             evaluator.evaluate(gt_data, pred)
-            logging.info(f"Iter {self.global_step} {i}: \n\t "
-                         f"mse:{mse:.4f} \n\t "
-                         f"mae:{mae:.4f} \n\t "
-                         f"gdl:{gdl:.4f}")
+            self.logger.info(f"Iter {self.global_step} {i}: \n\t "
+                             f"mse:{mse:.4f} \n\t "
+                             f"mae:{mae:.4f} \n\t "
+                             f"gdl:{gdl:.4f}")
             i += 1
         evaluator.done()
 
@@ -135,7 +139,7 @@ class AVGRunner:
         save_path = self.saver.save(self.sess,
                                     join(c.SAVE_MODEL, "model.ckpt"),
                                     global_step=self.global_step)
-        print("Model saved in path: %s" % save_path)
+        self.logger.info("Model saved in path: %s" % save_path)
 
     def run_benchmark(self, iter, mode="Test"):
         if mode == "Valid":
@@ -174,15 +178,15 @@ class AVGRunner:
             gt_data = crop_img(gt_data)
             mse, mae, gdl, pred = self.g_model.valid_step(in_data, gt_data)
             evaluator.evaluate(gt_data, pred)
-            logging.info(f"Iter {iter} {i}: \n\t mse:{mse} \n\t mae:{mae} \n\t gdl:{gdl}")
+            self.logger.info(f"Iter {iter} {i}: \n\t mse:{mse} \n\t mae:{mae} \n\t gdl:{gdl}")
             i += 1
             if i % stride == 0:
                 if c.IN_CHANEL == 3:
                     in_data = in_data[:, :, :, :, 1:-1]
 
                 for b in range(self._batch):
-                    predict_date = date_clip[b][self._in_seq-1]
-                    logging.info(f"Save {predict_date} results")
+                    predict_date = date_clip[b][self._in_seq - 1]
+                    self.logger.info(f"Save {predict_date} results")
                     if mode == "Valid":
                         save_path = os.path.join(c.SAVE_VALID, str(iter), predict_date.strftime("%Y%m%d%H%M"))
                     else:
@@ -210,22 +214,18 @@ if __name__ == '__main__':
     device = FLAGS.device
     config = FLAGS.config
     paras = FLAGS.restore
+
     os.environ['CUDA_VISIBLE_DEVICES'] = device
-    config_log()
-    logging.getLogger().setLevel(logging.INFO)
+
     cfg_from_file(config)
     print(c.SAVE_PATH)
     print(device, config, paras)
-    # paras = ("first_try", "94999")
-    # paras = '/extend/gru_tf_data/0512_ebtest/Save/model.ckpt-49999'
+
     runner = AVGRunner(paras)
     try:
         runner.train()
     except Exception as e:
         runner.notifier.send("Something wrong\n" + str(e))
+        runner.logger.error(str(e))
     else:
         runner.notifier.send("Done")
-    # test(paras, 49999)
-
-
-
