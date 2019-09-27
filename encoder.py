@@ -128,3 +128,16 @@ class Encoder(object):
                                                            length=self._seq)
                 self.rnn_states[i] = states
                 in_data = output
+
+    def rnn_encoder_step(self, in_data):
+        with tf.variable_scope("Encoder", auxiliary_name_scope=False, reuse=tf.AUTO_REUSE):
+            for i in range(self.stack_num):
+                conv = conv2d_act(input=in_data,
+                                  name=f"Conv{i}",
+                                  kernel=self.conv_kernels[i],
+                                  bias=self.conv_bias[i],
+                                  strides=self.conv_stride[i])
+
+                output, states = self.rnn_blocks[i](inputs=conv, state=self.rnn_states[i])
+                self.rnn_states[i] = states
+                in_data = output

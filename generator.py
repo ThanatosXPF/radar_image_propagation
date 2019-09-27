@@ -63,7 +63,11 @@ class Generator(object):
                                       i2h_kernel=c.I2H_KERNEL,
                                       height=self._h,
                                       width=self._w)
-                encoder_net.rnn_encoder(self.in_data)
+                if c.SEQUENCE_MODE:
+                    for i in range(self._in_seq):
+                        encoder_net.rnn_encoder_step(self.in_data[:, i, ...])
+                else:
+                    encoder_net.rnn_encoder(self.in_data)
             states = encoder_net.rnn_states
             with tf.device('/device:GPU:1'):
                 forecaster_net = Forecaster(self._batch,
@@ -77,9 +81,13 @@ class Generator(object):
                                             rnn_states=states,
                                             height=self._h,
                                             width=self._w)
-
-                forecaster_net.rnn_forecaster()
-            pred = forecaster_net.pred
+                if c.SEQUENCE_MODE:
+                    for i in range(self._out_seq):
+                        forecaster_net.rnn_forecaster_step()
+                    pred = tf.concat(forecaster_net.pred, axis=1)
+                else:
+                    forecaster_net.rnn_forecaster()
+                    pred = forecaster_net.pred
 
             with tf.variable_scope("loss"):
                 gt = self.gt_data

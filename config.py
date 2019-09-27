@@ -107,7 +107,7 @@ __C.OUT_SEQ = 10                                                        # 模型
 __C.LR = 0.0001                                                         # Learning Rate
 
 __C.RESIDUAL = False                                                    # 没用
-__C.SEQUENCE_MODE = False                                               # 没用
+__C.SEQUENCE_MODE = True                                                # 没用
 
 # RNN
 __C.I2H_KERNEL = [3, 3, 3]                                              # 每层 RNN 内部各个卷积卷积核大小
@@ -141,8 +141,8 @@ __C.PREDICTION_W = 900                                                  # 预测
 __C.ADVERSARIAL = True                                                  # 是否加入 EBGAN
 __C.ADV_LAMBDA = 1.0                                                    # EBGAN loss 的系数
 __C.MARGIN = 1                                                          # EBGAN 参数 factor
-__C.ADV_INVOLVE = 0                                                     # 在多少轮时 EBGAN 进行了介入
-
+__C.ADV_INVOLVE = 0                                                     # 在多少轮时 EBGAN 进行介入
+__C.DIS_FMS = [7, 5, 3]
 
 def _merge_two_config(user_cfg, default_cfg):
     """ Merge user's config into default config dictionary, clobbering the

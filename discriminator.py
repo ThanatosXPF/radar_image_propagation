@@ -17,6 +17,7 @@ class Discriminator:
 
         self._h = c.PREDICTION_H
         self._w = c.PREDICTION_W
+        self.strides = c.CONV_STRIDE
 
         self.pred_data = None
         self.real_data = None
@@ -31,22 +32,33 @@ class Discriminator:
             with tf.name_scope("graph"):
                 self.pred_data = tf.placeholder(self._dtype, (self._batch, self._out_seq, self._h, self._w, 1))
                 self.real_data = tf.placeholder(self._dtype, (self._batch, self._out_seq, self._h, self._w, 1))
+                if c.PREDICTION_H != c.H or c.PREDICTION_W != c.W:
+                    g_h = (c.H - c.PREDICTION_H) // 2
+                    g_w = (c.W - c.PREDICTION_W) // 2
+                    p = [[0, 0], [0, 0], [g_h, g_h], [g_w, g_w], [0, 0]]
+                    pred_data = tf.pad(self.pred_data, p, "CONSTANT")
+                    real_data = tf.pad(self.real_data, p, "CONSTANT")
+                else:
+                    pred_data = self.pred_data
+                    real_data = self.real_data
 
-                pred = tf.transpose(self.pred_data, [0, 4, 2, 3, 1])
-                real = tf.transpose(self.real_data, [0, 4, 2, 3, 1])
+                pred = tf.transpose(pred_data, [0, 4, 2, 3, 1])
+                real = tf.transpose(real_data, [0, 4, 2, 3, 1])
 
                 # data = tf.concat([pred, real], axis=0)
-                pred_data = tf.reshape(pred, (self._batch , self._h, self._w, self._out_seq))
+                pred_data = tf.reshape(pred, (self._batch, c.H, c.W, self._out_seq))
                 d_pred = self.encoder_decoder(pred_data)
-                real_data = tf.reshape(real, (self._batch , self._h, self._w, self._out_seq))
+                real_data = tf.reshape(real, (self._batch, c.H, c.W, self._out_seq))
                 d_real = self.encoder_decoder(real_data, reuse=True)
-
 
             with tf.name_scope("Discriminator_loss"):
                 self.global_step = tf.Variable(0, trainable=False)
 
                 mid = tf.transpose(d_pred, [0, 3, 1, 2])
-                self.d_pred = tf.reshape(mid, (self._batch, self._out_seq, self._h, self._w, 1))
+                self.d_pred = tf.reshape(mid, (self._batch, self._out_seq, c.H, c.W, 1))
+
+                if c.PREDICTION_H != c.H or c.PREDICTION_W != c.W:
+                    self.d_pred = self.d_pred[:, :, 2:-2, 2:-2, :]
 
                 mse_real = tf.reduce_mean(tf.square(d_real - real))
                 mse_pred = tf.reduce_mean(tf.square(d_pred - pred))
@@ -64,6 +76,59 @@ class Discriminator:
                 self.optim = tf.train.AdamOptimizer(c.LR).minimize(self.loss,
                                                                    global_step=self.global_step,
                                                                    name="discriminator_op")
+
+    def auto_encoder_decoder(self, data, reuse=None):
+        strides = self.strides
+        if len(strides) == 3:
+            fms = [7, 5, 3]
+            c_channel = [[10, 16], [16, 32], [32, 32]]
+            d_channel = [[32, 32], [16, 16], [10, 10]]
+        else:
+            fms = [7, 5, 5, 3, 3]
+            c_channel = [[10, 16], [16, 16], [16, 32], [32, 32], [32, 64]]
+            d_channel = [[32, 32], [32, 32], [16, 16], [16, 16], [10, 10]]
+
+        for i, (s, k, c) in enumerate(zip(strides, fms, c_channel)):
+            conv1 = tf.layers.conv2d(data, c[0], 3, (1, 1),
+                                     activation=tf.nn.leaky_relu,
+                                     padding="SAME",
+                                     kernel_initializer=xavier_initializer(uniform=False),
+                                     name=f"conv_{i}_1",
+                                     reuse=reuse)
+
+            bn1 = tf.layers.batch_normalization(conv1, name=f"bn_{i}_1", reuse=reuse)
+
+            conv2 = tf.layers.conv2d(bn1, c[1], k, (s, s),
+                                     activation=tf.nn.leaky_relu,
+                                     padding="SAME",
+                                     kernel_initializer=xavier_initializer(uniform=False),
+                                     name=f"conv_{i}_2",
+                                     reuse=reuse)
+
+            data = tf.layers.batch_normalization(conv2, name=f"bn_{i}_2", reuse=reuse)
+
+        for i, (s, k, c) in enumerate(zip(strides[::-1], fms[::-1], d_channel)):
+            deconv1 = tf.layers.conv2d_transpose(data, c[0], k, (s, s),
+                                                 activation=tf.nn.leaky_relu,
+                                                 padding="SAME",
+                                                 kernel_initializer=xavier_initializer(uniform=False),
+                                                 name=f"deconv_{i}_1",
+                                                 reuse=reuse)
+
+            dec_bn1 = tf.layers.batch_normalization(deconv1, name=f"dec_bn_{i}_1", reuse=reuse)
+
+            deconv2 = tf.layers.conv2d_transpose(dec_bn1, c[1], 3, (1, 1),
+                                                 activation=tf.nn.leaky_relu,
+                                                 padding="SAME",
+                                                 kernel_initializer=xavier_initializer(uniform=False),
+                                                 name=f"deconv_{i}_2",
+                                                 reuse=reuse)
+            if i != len(strides) - 1 :
+                data = tf.layers.batch_normalization(deconv2, name=f"dec_bn_{i}_2", reuse=reuse)
+            else:
+                data = deconv2
+        return data
+
     def encoder_decoder(self, data, reuse=None):
         conv1 = tf.layers.conv2d(data, 10, 3, (1, 1),
                                  activation=tf.nn.leaky_relu,
@@ -194,3 +259,10 @@ class Discriminator:
             self.summary_writer.add_summary(summaries, global_step)
 
         return loss, mse_real, mse_pred
+
+
+if __name__ == '__main__':
+    sess = tf.Session()
+
+    d_model = Discriminator(sess, None)
+

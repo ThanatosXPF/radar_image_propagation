@@ -62,7 +62,7 @@ class Forecaster(object):
                                               self._gru_fms[i]),
                                        h2h_kernel=self._h2h_kernel[i],
                                        i2h_kernel=self._i2h_kernel[i],
-                                       name="e_cgru_" + str(i),
+                                       name="f_cgru_" + str(i),
                                        chanel=self._gru_in_chanel[i])
                 elif c.RNN_CELL == "st_lstm":
                     cell = ConvSTLSTMCell(num_filter=self._gru_filter[i],
@@ -70,7 +70,7 @@ class Forecaster(object):
                                                  self._gru_fms[i],
                                                  self._gru_fms[i]),
                                           kernel=self._i2h_kernel[i],
-                                          name="e_stlstm_" + str(i),
+                                          name="f_stlstm_" + str(i),
                                           chanel=self._gru_in_chanel[i])
                 elif c.RNN_CELL == "PredRNN":
                     cell = PredRNNCell(num_filter=self._gru_filter[i],
@@ -78,7 +78,7 @@ class Forecaster(object):
                                               self._gru_fms[i],
                                               self._gru_fms[i]),
                                        kernel=self._i2h_kernel[i],
-                                       name="e_stlstm_" + str(i),
+                                       name="f_predrnn_" + str(i),
                                        chanel=self._gru_in_chanel[i],
                                        layers=c.PRED_RNN_LAYERS)
                 else:
@@ -97,8 +97,12 @@ class Forecaster(object):
                     self.conv_bias.append(tf.get_variable(name=f"Deconv{i}_b",
                                                           shape=[self._conv_fms[i][-2]],
                                                           initializer=tf.zeros_initializer))
-                    self.infer_shape.append(
-                        (self._batch*self._seq, self._infer_shape[i], self._infer_shape[i], self._conv_fms[i][-2]))
+                    if c.SEQUENCE_MODE:
+                        self.infer_shape.append(
+                            (self._batch, self._infer_shape[i], self._infer_shape[i], self._conv_fms[i][-2]))
+                    else:
+                        self.infer_shape.append(
+                            (self._batch*self._seq, self._infer_shape[i], self._infer_shape[i], self._conv_fms[i][-2]))
             elif c.UP_SAMPLE_TYPE == "inception":
                 for i in range(len(self._conv_fms)):
                     conv_kernels = []
@@ -113,7 +117,11 @@ class Forecaster(object):
                         biases.append(tf.get_variable(name=f"Conv{i}_b{j}",
                                                       shape=kernel[-2],
                                                       initializer=tf.zeros_initializer))
-                        shapes.append((self._batch*self._seq, self._infer_shape[i], self._infer_shape[i], kernel[-2]))
+                        if c.SEQUENCE_MODE:
+                            shapes.append(
+                                (self._batch, self._infer_shape[i], self._infer_shape[i], kernel[-2]))
+                        else:
+                            shapes.append((self._batch*self._seq, self._infer_shape[i], self._infer_shape[i], kernel[-2]))
                     self.conv_kernels.append(conv_kernels)
                     self.conv_bias.append(biases)
                     self.infer_shape.append(shapes)
@@ -159,3 +167,27 @@ class Forecaster(object):
             pred = tf.nn.leaky_relu(tf.nn.bias_add(pred, self.final_bias[1]))
             pred = tf.reshape(pred, shape=(self._batch, self._seq, self._h, self._w, 1))
             self.pred = pred
+
+    def rnn_forecaster_step(self):
+        with tf.variable_scope("Forecaster", auxiliary_name_scope=False, reuse=tf.AUTO_REUSE):
+            in_data = None
+            for i in range(self.stack_num-1, -1, -1):
+                output, states = self.rnn_blocks[i](inputs=in_data,
+                                                    state=self.rnn_states[i])
+                deconv = deconv2d_act(input=output,
+                                      name=f"Deconv{i}",
+                                      kernel=self.conv_kernels[i],
+                                      bias=self.conv_bias[i],
+                                      infer_shape=self.infer_shape[i],
+                                      strides=self.conv_stride[i])
+
+                in_data = deconv
+            in_data = tf.reshape(in_data, [self._batch, self._h, self._w, -1])
+            conv_final = tf.nn.conv2d(in_data, self.final_conv[0], strides=(1, 1, 1, 1), padding="SAME",
+                                      name="final_conv")
+            conv_final = tf.nn.leaky_relu(tf.nn.bias_add(conv_final, self.final_bias[0]))
+            pred = tf.nn.conv2d(conv_final, filter=self.final_conv[1], strides=(1, 1, 1, 1), padding="SAME",
+                                name="Pred")
+            pred = tf.nn.leaky_relu(tf.nn.bias_add(pred, self.final_bias[1]))
+            pred = tf.reshape(pred, shape=(self._batch, 1, self._h, self._w, 1))
+            self.pred.append(pred)
