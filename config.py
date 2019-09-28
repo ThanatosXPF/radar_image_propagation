@@ -107,7 +107,7 @@ __C.OUT_SEQ = 10                                                        # 模型
 __C.LR = 0.0001                                                         # Learning Rate
 
 __C.RESIDUAL = False                                                    # 没用
-__C.SEQUENCE_MODE = True                                                # 没用
+__C.SEQUENCE_MODE = True                                                # 按层展开（false） 按时间步展开（true），后者省内存
 
 # RNN
 __C.I2H_KERNEL = [3, 3, 3]                                              # 每层 RNN 内部各个卷积卷积核大小
