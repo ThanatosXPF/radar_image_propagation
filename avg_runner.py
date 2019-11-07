@@ -19,6 +19,8 @@ flags = tf.flags
 flags.DEFINE_string('device', '0,1', '显卡')
 flags.DEFINE_string('config', '/extend/gru_tf_data/0916_ensemble/cfg0.yml', '配置文件')
 flags.DEFINE_string('restore', None, '参数')
+flags.DEFINE_string('mode', 'train', '模式')
+flags.DEFINE_string('iter', '-1', '测试参数轮数')
 
 
 class AVGRunner:
@@ -214,6 +216,8 @@ if __name__ == '__main__':
     device = FLAGS.device
     config = FLAGS.config
     paras = FLAGS.restore
+    mode = FLAGS.mode
+    step = FLAGS.iter
 
     os.environ['CUDA_VISIBLE_DEVICES'] = device
 
@@ -221,9 +225,12 @@ if __name__ == '__main__':
     print(c.SAVE_PATH)
     print(device, config, paras)
 
-    runner = AVGRunner(paras)
+    runner = AVGRunner(paras, mode)
     try:
-        runner.train()
+        if mode == 'train':
+            runner.train()
+        else:
+            runner.run_benchmark(step, mode=mode)
     except Exception as e:
         runner.notifier.send("Something wrong\n" + str(e))
         runner.logger.error(str(e))
